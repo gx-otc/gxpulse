@@ -180,6 +180,31 @@ select, select option {
   background: #0b1220 !important;
   color: #e2e8f0 !important;
 }
+  /* LOGIN DROPDOWN NOT CLIPPED (STRONG FIX) */
+html, body {
+  overflow: visible !important;
+}
+
+/* These are common wrappers that often clip dropdowns */
+#app, .app, .main, .content, .container, .wrapper, .panel,
+.auth, .auth-card, .login, .login-card, .modal, .card {
+  overflow: visible !important;
+  overflow-x: visible !important;
+  overflow-y: visible !important;
+  transform: none !important; /* transform can also cause clipping */
+}
+
+/* Put the dropdown above other layers */
+select {
+  position: relative !important;
+  z-index: 999999 !important;
+}
+
+/* Dark dropdown readability */
+select, select option {
+  background: #0b1220 !important;
+  color: #e2e8f0 !important;
+}
 </style>
 </head>
 <body>

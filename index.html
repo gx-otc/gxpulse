@@ -11,7 +11,7 @@
 window.login = login;
 </script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js">
-// expose login globally
+// expose  globally
 window.login = login;
 </script>
 <script src="https://unpkg.com/lightweight-charts@4.2.1/dist/lightweight-charts.standalone.production.js">
@@ -1957,6 +1957,23 @@ if (sess) startApp();
 
 // expose login globally
 window.login = login;
+  // TEMPORARY ADMIN BYPASS
+document.addEventListener("DOMContentLoaded", function () {
+
+  const loginPanel =
+    document.querySelector("#login") ||
+    document.querySelector(".login") ||
+    document.querySelector(".login-card");
+
+  const appPanel =
+    document.querySelector("#app") ||
+    document.querySelector(".app") ||
+    document.querySelector(".main");
+
+  if (loginPanel) loginPanel.style.display = "none";
+  if (appPanel) appPanel.style.display = "block";
+
+});
 </script>
 </body>
 </html>

@@ -161,6 +161,24 @@ body, .panel, .main, .auth-card, .login-card {
 select, .auth-card, .login-card {
   position: relative;
   z-index: 9999;
+}/* FIX: Stop login dropdown being clipped/cut off */
+.auth-card, .login-card, .panel, .main, body {
+  overflow: visible !important;
+}
+
+/* Make sure dropdown appears above other boxes */
+select {
+  position: relative !important;
+  z-index: 9999 !important;
+  min-height: 44px;
+  height: 44px;
+  line-height: 44px;
+}
+
+/* Improve dropdown colors in dark mode */
+select, select option {
+  background: #0b1220 !important;
+  color: #e2e8f0 !important;
 }
 </style>
 </head>

@@ -868,7 +868,7 @@ function hydrateLogin() {
   if (inp && !inp.value && u[0]) inp.value = u[0].user_id;
 }
 
-async async function login() {
+async function login() {
   const uid = (document.getElementById("loginUser")?.value || "").trim();
   const pass = (document.getElementById("loginPass")?.value || "").trim();
 

@@ -860,72 +860,76 @@ function hydrateLogin() {
 }
 
 async function login() {
-  const uid = (document.getElementById("loginUser")?.value || "").trim();
-  const pass = (document.getElementById("loginPass")?.value || "").trim();
+  async function login(){
 
-  if (!uid) return toast("Login failed", "Please enter/select a user", "warn");
-  if (!pass) return toast("Login failed", "Please enter your password", "warn");
+const userId = document.getElementById("loginUser").value.trim()
+const password = document.getElementById("loginPass").value.trim()
 
-  ensureSeeded();
+if(!userId || !password){
+alert("Enter username and password")
+return
+}
 
-  // Prefer local, then Supabase
-  let user = DB.users().find(u => u.user_id === uid);
+const { data:user , error } = await supabase
+.from("gx_users")
+.select("*")
+.eq("user_id",userId)
+.single()
 
-  try {
-    if (window.__supa && window.__supaReady) {
-      const { data, error } = await window.__supa
-        .from("gx_users")
-        .select("user_id, full_name, role, active, password_hash, password_salt")
-        .eq("user_id", uid)
-        .maybeSingle();
-      if (!error && data) user = Object.assign({}, user || {}, data);
-    }
-  } catch (e) {}
+if(error || !user){
+alert("User not found")
+return
+}
 
-  // Fallback core roles (fresh device/incognito)
-  if (!user) {
-    const core = ["admin","staff","merchant","analyst","historical_seed"];
-    const id = uid.toLowerCase();
-    if (core.includes(id)) {
-      const roleMap = { admin:"admin", staff:"staff", merchant:"merchant", analyst:"analyst", historical_seed:"staff" };
-      user = { user_id: id, full_name: id.replace(/\b\w/g, c=>c.toUpperCase()), role: roleMap[id] || "staff", active: true };
-      const u = DB.users();
-      if (!u.find(x => x.user_id === user.user_id)) { u.push(user); DB.set("users", u); }
-    }
-  }
+/* ---------- FIRST LOGIN FOR ADMIN ---------- */
 
-  if (!user) return toast("Login failed", "User not found. Ask admin to create your account.", "bad");
-  if (user.active === false) return toast("Login blocked", "This user is deactivated.", "bad");
+if(user.user_id==="admin" && !user.password_hash){
 
-  const hasHash = !!(user.password_hash && user.password_salt);
+if(password==="admin"){
 
-  if (!hasHash) {
-    const expected = (uid.toLowerCase() === "admin") ? "admin" : uid;
-    if (pass !== expected) {
-      return toast("Login failed", "Invalid password. Ask admin to set/reset your password.", "bad");
-    }
-    if (uid.toLowerCase() === "admin") {
-      toast("Action needed", "Admin: please set a new password in Admin → Users.", "warn");
-    }
-  } else {
-    const computed = await hashPass(pass, user.password_salt);
-    if (computed !== user.password_hash) return toast("Login failed", "Invalid password.", "bad");
-  }
+sessionStorage.setItem("gx_user",user.user_id)
+sessionStorage.setItem("gx_role",user.role)
 
-  DB.setSession({ user_id: user.user_id, role: user.role || "staff", full_name: user.full_name || user.user_id, ts: Date.now() });
+alert("First login successful. Please change admin password.")
 
-  // cache safe user fields locally
-  try {
-    const u = DB.users();
-    const idx = u.findIndex(x => x.user_id === user.user_id);
-    const safe = { user_id: user.user_id, full_name: user.full_name, role: user.role, active: user.active };
-    if (idx >= 0) u[idx] = Object.assign({}, u[idx], safe);
-    else u.push(safe);
-    DB.set("users", u);
-  } catch(e){}
+document.getElementById("loginScreen").style.display="none"
+document.getElementById("app").style.display="block"
 
-  toast("Welcome", `${user.full_name || user.user_id}`, "good");
-  startApp();
+return
+
+}else{
+
+alert("Incorrect admin password")
+return
+
+}
+
+}
+
+/* ---------- NORMAL LOGIN FOR ALL USERS ---------- */
+
+if(!user.password_hash){
+
+alert("Password not set. Ask admin to create your password.")
+return
+
+}
+
+const valid = await verifyPassword(password,user.password_hash,user.password_salt)
+
+if(!valid){
+
+alert("Incorrect password")
+return
+
+}
+
+sessionStorage.setItem("gx_user",user.user_id)
+sessionStorage.setItem("gx_role",user.role)
+
+document.getElementById("loginScreen").style.display="none"
+document.getElementById("app").style.display="block"
+
 }
 function logout() {
   DB.setSession(null);
@@ -1945,6 +1949,20 @@ ensureSeeded();
 hydrateLogin();
 const sess = currentUser();
 if (sess) startApp();
+  async function verifyPassword(password,hash,salt){
+
+const enc = new TextEncoder()
+const data = enc.encode(password + salt)
+
+const digest = await crypto.subtle.digest("SHA-256",data)
+
+const hex = Array.from(new Uint8Array(digest))
+.map(b=>b.toString(16).padStart(2,"0"))
+.join("")
+
+return hex===hash
+
+}
 </script>
 </body>
 </html>

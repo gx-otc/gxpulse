@@ -205,12 +205,10 @@
       <!-- Dashboard -->
       <section id="page-dashboard" class="page">
         <div class="kpis" id="kpis"></div>
-
         <div class="grid" style="margin-top:14px;">
-          <div class="card" id="quickEntryCard">
+          <div class="card">
             <h3>Quick Price Entry</h3>
             <p class="muted small">Add a new market price observation. Saved locally and (if connected) synced to cloud.</p>
-
             <div class="row">
               <div class="field" style="grid-column: span 4;">
                 <label>Date</label>
@@ -253,17 +251,22 @@
                 </div>
               </div>
             </div>
-
             <div style="display:flex; gap:10px; margin-top:12px; align-items:center;">
               <button class="btn primary" id="btnSaveEntry">Save Entry</button>
               <span class="muted small" id="saveHint">—</span>
             </div>
           </div>
 
-          <div class="card" id="dbAnalyticsCard">
+          
+
+          <div class="card">
             <h3>Dashboard Analytics</h3>
             <div class="muted small">Quick visual summary (updates automatically when data changes).</div>
-            <div style="margin-top:12px;">
+            <div class="two" style="margin-top:12px; gap:14px; align-items:stretch;">
+              <div>
+                <div class="muted small" style="margin-bottom:6px;">Entries over time (last 30 days)</div>
+                <canvas id="dbLine" height="220"></canvas>
+              </div>
               <div>
                 <div class="muted small" style="margin-bottom:6px;">Share of entries by market</div>
                 <canvas id="dbPie" height="220"></canvas>
@@ -272,8 +275,12 @@
             <div class="muted small" id="dbChartHint" style="margin-top:10px;"></div>
           </div>
 
-          <div class="card" style="grid-column: span 2;">
-            <h3>Latest Activity</h3>
+</div>
+
+          
+
+<div class="card" style="grid-column: span 2;">
+            <h3>Latest Activity</h3
             <div class="muted small">Most recent entries (top 10).</div>
             <div style="margin-top:10px; overflow:auto; max-height: 420px;">
               <table class="table" id="latestTable">
@@ -369,10 +376,21 @@
         </div>
 
         <div class="grid" style="margin-top:12px;">
-          <div class="card" style="grid-column: span 2;">
+          <div class="card">
+            <h3>Price Trend</h3>
+            <div class="chartBox"><canvas id="tLine" height="360"></canvas></div>
+          </div>
+          <div class="card">
             <h3>Latest Price Across Markets</h3>
-            <div class="muted small">Shows latest available price per market for the selected commodity.</div>
-            <div class="chartBox" style="height:420px;"><canvas id="tBar" height="420"></canvas></div>
+            <div class="chartBox"><canvas id="tBar" height="360"></canvas></div>
+          </div>
+
+        <div class="grid" style="margin-top:12px;">
+          <div class="card" style="grid-column: span 2;">
+            <h3>Candlestick (OHLC)</h3>
+            <div class="muted small">Candlestick built from daily OHLC derived from entries. Works even with one observation per day.</div>
+            <div id="tCandle" class="lw-wrap" style="margin-top:10px;"></div>
+            <div class="muted small" id="tCandleHint" style="margin-top:10px;"></div>
           </div>
         </div>
 
@@ -784,6 +802,7 @@ function go(id) {
   $(`#page-${id}`).classList.remove("hide");
   // Ensure charts measure correctly after page becomes visible
   requestAnimationFrame(() => {
+    try { window.__dbCharts?.line?.resize?.(); } catch(_){ }
     try { window.__dbCharts?.pie?.resize?.(); } catch(_){ }
     try { lineChart?.resize?.(); } catch(_){ }
     try { mcChart?.resize?.(); } catch(_){ }
@@ -860,76 +879,72 @@ function hydrateLogin() {
 }
 
 async function login() {
-  async function login(){
+  const uid = (document.getElementById("loginUser")?.value || "").trim();
+  const pass = (document.getElementById("loginPass")?.value || "").trim();
 
-const userId = document.getElementById("loginUser").value.trim()
-const password = document.getElementById("loginPass").value.trim()
+  if (!uid) return toast("Login failed", "Please enter/select a user", "warn");
+  if (!pass) return toast("Login failed", "Please enter your password", "warn");
 
-if(!userId || !password){
-alert("Enter username and password")
-return
-}
+  ensureSeeded();
 
-const { data:user , error } = await supabase
-.from("gx_users")
-.select("*")
-.eq("user_id",userId)
-.single()
+  // Prefer local, then Supabase
+  let user = DB.users().find(u => u.user_id === uid);
 
-if(error || !user){
-alert("User not found")
-return
-}
+  try {
+    if (window.__supa && window.__supaReady) {
+      const { data, error } = await window.__supa
+        .from("gx_users")
+        .select("user_id, full_name, role, active, password_hash, password_salt")
+        .eq("user_id", uid)
+        .maybeSingle();
+      if (!error && data) user = Object.assign({}, user || {}, data);
+    }
+  } catch (e) {}
 
-/* ---------- FIRST LOGIN FOR ADMIN ---------- */
+  // Fallback core roles (fresh device/incognito)
+  if (!user) {
+    const core = ["admin","staff","merchant","analyst","historical_seed"];
+    const id = uid.toLowerCase();
+    if (core.includes(id)) {
+      const roleMap = { admin:"admin", staff:"staff", merchant:"merchant", analyst:"analyst", historical_seed:"staff" };
+      user = { user_id: id, full_name: id.replace(/\b\w/g, c=>c.toUpperCase()), role: roleMap[id] || "staff", active: true };
+      const u = DB.users();
+      if (!u.find(x => x.user_id === user.user_id)) { u.push(user); DB.set("users", u); }
+    }
+  }
 
-if(user.user_id==="admin" && !user.password_hash){
+  if (!user) return toast("Login failed", "User not found. Ask admin to create your account.", "bad");
+  if (user.active === false) return toast("Login blocked", "This user is deactivated.", "bad");
 
-if(password==="admin"){
+  const hasHash = !!(user.password_hash && user.password_salt);
 
-sessionStorage.setItem("gx_user",user.user_id)
-sessionStorage.setItem("gx_role",user.role)
+  if (!hasHash) {
+    const expected = (uid.toLowerCase() === "admin") ? "admin" : uid;
+    if (pass !== expected) {
+      return toast("Login failed", "Invalid password. Ask admin to set/reset your password.", "bad");
+    }
+    if (uid.toLowerCase() === "admin") {
+      toast("Action needed", "Admin: please set a new password in Admin → Users.", "warn");
+    }
+  } else {
+    const computed = await hashPass(pass, user.password_salt);
+    if (computed !== user.password_hash) return toast("Login failed", "Invalid password.", "bad");
+  }
 
-alert("First login successful. Please change admin password.")
+  DB.setSession({ user_id: user.user_id, role: user.role || "staff", full_name: user.full_name || user.user_id, ts: Date.now() });
 
-document.getElementById("loginScreen").style.display="none"
-document.getElementById("app").style.display="block"
+  // cache safe user fields locally
+  try {
+    const u = DB.users();
+    const idx = u.findIndex(x => x.user_id === user.user_id);
+    const safe = { user_id: user.user_id, full_name: user.full_name, role: user.role, active: user.active };
+    if (idx >= 0) u[idx] = Object.assign({}, u[idx], safe);
+    else u.push(safe);
+    DB.set("users", u);
+  } catch(e){}
 
-return
-
-}else{
-
-alert("Incorrect admin password")
-return
-
-}
-
-}
-
-/* ---------- NORMAL LOGIN FOR ALL USERS ---------- */
-
-if(!user.password_hash){
-
-alert("Password not set. Ask admin to create your password.")
-return
-
-}
-
-const valid = await verifyPassword(password,user.password_hash,user.password_salt)
-
-if(!valid){
-
-alert("Incorrect password")
-return
-
-}
-
-sessionStorage.setItem("gx_user",user.user_id)
-sessionStorage.setItem("gx_role",user.role)
-
-document.getElementById("loginScreen").style.display="none"
-document.getElementById("app").style.display="block"
-
+  toast("Welcome", `${user.full_name || user.user_id}`, "good");
+  startApp();
 }
 function logout() {
   DB.setSession(null);
@@ -988,12 +1003,6 @@ function activeCommodities() {
 
 // ---------- Dashboard ----------
 function renderDashboard() {
-  const s = currentUser();
-  const quickCard = document.getElementById("quickEntryCard");
-  if (quickCard) {
-    const role = (s && s.role) ? String(s.role).toLowerCase() : "";
-    quickCard.style.display = (role === "admin" || role === "staff") ? "" : "none";
-  }
   const markets = DB.markets();
   const commodities = DB.commodities();
   const entries = DB.entries();
@@ -1016,11 +1025,9 @@ function renderDashboard() {
     kpis.appendChild(d);
   });
 
-  if (!quickCard || quickCard.style.display !== "none") {
-    fillSelect($("#pe-market"), activeMarkets(), "market_id", "label");
-    fillSelect($("#pe-commodity"), activeCommodities(), "commodity_id", "label");
-    if (!$("#pe-date").value) $("#pe-date").value = new Date().toISOString().slice(0,10);
-  }
+  fillSelect($("#pe-market"), activeMarkets(), "market_id", "label");
+  fillSelect($("#pe-commodity"), activeCommodities(), "commodity_id", "label");
+  if (!$("#pe-date").value) $("#pe-date").value = new Date().toISOString().slice(0,10);
 
   const tb = $("#latestTable tbody");
   tb.innerHTML = "";
@@ -1044,40 +1051,94 @@ function renderDashboard() {
 }
 
 
-
 function renderDashboardCharts(entries, markets, commodities) {
+  const lineEl = document.getElementById("dbLine");
   const pieEl  = document.getElementById("dbPie");
   const hint   = document.getElementById("dbChartHint");
-  if (!pieEl) return;
+  if (!lineEl || !pieEl) return;
 
   if (typeof Chart === "undefined") {
     if (hint) hint.textContent = "Charts library not loaded.";
     return;
   }
 
+  // Theme helpers
   const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
   const accent = css("--accent") || "#7c4dff";
   const text = css("--text") || "#e9eefc";
   const grid = css("--border") || "rgba(255,255,255,0.12)";
 
-  // PIE: share of entries by market (top 10)
+  // ----- PIE: share of entries by market (top 8)
   const mName = new Map(markets.map(m => [m.market_id, m.market_name]));
   const byMarket = new Map();
   for (const e of entries) {
     const mid = e.market_id;
     if (mid) byMarket.set(mid, (byMarket.get(mid) || 0) + 1);
   }
-  const topMkts = [...byMarket.entries()].sort((a,b)=>b[1]-a[1]).slice(0, 10);
+  const topMkts = [...byMarket.entries()].sort((a,b)=>b[1]-a[1]).slice(0, 8);
   const mktLabels = topMkts.map(([mid]) => mName.get(mid) || mid);
   const mktData   = topMkts.map(([,n]) => n);
 
+  // ----- LINE: entries over time (last 30 days)
+  const days = 30;
+  const now = Date.now();
+  const start = now - (days-1)*24*3600*1000;
+
+  const counts = new Map(); // yyyy-mm-dd -> count
+  for (const e of entries) {
+    const t = Number(e.timestamp_ms || 0);
+    if (!t || t < start || t > now) continue;
+    const d = toDateISO(t);
+    counts.set(d, (counts.get(d) || 0) + 1);
+  }
+
+  const lineLabels = [];
+  const lineData   = [];
+  for (let i=0; i<days; i++) {
+    const t = start + i*24*3600*1000;
+    const d = toDateISO(t);
+    lineLabels.push(d.slice(5)); // MM-DD
+    lineData.push(counts.get(d) || 0);
+  }
+
+  // Destroy previous charts
   window.__dbCharts = window.__dbCharts || {};
+  try { window.__dbCharts.line?.destroy?.(); } catch(_){}
   try { window.__dbCharts.pie?.destroy?.(); } catch(_){}
 
-  const pieCtx = pieEl.getContext("2d");
-  const shades = ["55","66","77","88","99","aa","bb","cc","dd","ee"];
-  const pieColors = mktLabels.map((_,i) => accent + shades[i % shades.length]);
+  // Line chart
+  const lineCtx = lineEl.getContext("2d");
+  window.__dbCharts.line = new Chart(lineCtx, {
+    type: "line",
+    data: {
+      labels: lineLabels,
+      datasets: [{
+        label: "Entries",
+        data: lineData,
+        borderColor: accent,
+        backgroundColor: accent + "22",
+        fill: true,
+        tension: 0.25,
+        pointRadius: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { enabled: true }
+      },
+      scales: {
+        x: { ticks: { color: text, maxRotation: 0 }, grid: { color: grid } },
+        y: { ticks: { color: text }, grid: { color: grid }, beginAtZero: true }
+      }
+    }
+  });
 
+  // Pie chart
+  const pieCtx = pieEl.getContext("2d");
+  const pieColors = mktLabels.map((_,i) => accent + (["55","66","77","88","99","aa","bb","cc"][i%8]));
   window.__dbCharts.pie = new Chart(pieCtx, {
     type: "pie",
     data: { labels: mktLabels, datasets: [{ data: mktData, backgroundColor: pieColors, borderColor: grid, borderWidth: 1 }] },
@@ -1088,8 +1149,9 @@ function renderDashboardCharts(entries, markets, commodities) {
     }
   });
 
-  if (hint) hint.textContent = "Dashboard pie updates automatically when data changes.";
+  if (hint) hint.textContent = "Dashboard charts update automatically when data changes.";
 }
+
 
 
 function saveEntry() {
@@ -1276,148 +1338,124 @@ let barChart = null;
 let mcChart = null;
 let abChart = null;
 
-
 function renderTrendsUI() {
   fillSelect($("#tc-m"), activeMarkets(), "market_id", "label");
   fillSelect($("#tc-c"), activeCommodities(), "commodity_id", "label");
 
-  const btn = $("#btnTrend");
-  if (btn) btn.onclick = initTrendCh;
+  const modeEl = $("#tc-mode");
+  const fromWrap = $("#tc-from-wrap");
+  const toWrap = $("#tc-to-wrap");
 
-  const p = $("#tc-p");
-  const m = $("#tc-m");
-  const c = $("#tc-c");
+  const applyMode = () => {
+    const mode = modeEl?.value || "period";
+    const showCustom = (mode === "custom");
+    if (fromWrap) fromWrap.style.display = showCustom ? "" : "none";
+    if (toWrap) toWrap.style.display = showCustom ? "" : "none";
+    // Quick range select is only meaningful in period mode
+    $("#tc-p").disabled = showCustom;
+    if (showCustom) {
+      // sensible defaults
+      const latest = (DB.entries().slice().sort((a,b)=>b.timestamp_ms-a.timestamp_ms)[0]?.timestamp_ms) || Date.now();
+      if (!$("#tc-to").value) $("#tc-to").value = toDateISO(latest);
+      if (!$("#tc-from").value) $("#tc-from").value = toDateISO(latest - 29*24*3600*1000);
+    }
+  };
 
-  if (p) p.onchange = initTrendCh;
-  if (m) m.onchange = initTrendCh;
-  if (c) c.onchange = initTrendCh;
+  if (modeEl && !modeEl.dataset.bound) {
+    modeEl.onchange = () => { applyMode(); initTrendCh(); };
+    modeEl.dataset.bound = "1";
+  }
 
+  $("#btnTrend").onclick = initTrendCh;
+  $("#tc-p").onchange = initTrendCh;
+  $("#tc-m").onchange = initTrendCh;
+  $("#tc-c").onchange = initTrendCh;
+  $("#tc-from").onchange = initTrendCh;
+  $("#tc-to").onchange = initTrendCh;
+
+  if (modeEl && !modeEl.value) modeEl.value = "period";
+  applyMode();
   initTrendCh();
 }
 
 
-
 function initTrendCh() {
-  const market_id = $("#tc-m")?.value;
-  const commodity_id = $("#tc-c")?.value;
-  const periodDays = Number($("#tc-p")?.value || 30);
+  const market_id = $("#tc-m").value;
+  const commodity_id = $("#tc-c").value;
 
-  const now = Date.now();
-  const fromTs = (periodDays > 0) ? (now - periodDays*24*3600*1000) : 0;
+  const mode = $("#tc-mode")?.value || "period";
+  let fromTs = 0;
+  let toTs = Date.now();
+
+  if (mode === "custom") {
+    const f = $("#tc-from").value ? parseDateISO($("#tc-from").value) : null;
+    const t = $("#tc-to").value ? parseDateISO($("#tc-to").value) : null;
+    fromTs = (f != null) ? f : 0;
+    toTs = (t != null) ? (t + 24*3600*1000 - 1) : Date.now();
+  } else {
+    const periodDays = Number($("#tc-p").value);
+    fromTs = periodDays > 0 ? (Date.now() - periodDays*24*3600*1000) : 0;
+    toTs = Date.now();
+  }
 
   const all = DB.entries();
-
-  // --- Series for selected market+commodity (trend line + candle)
   const series = all
     .filter(e => e.market_id === market_id && e.commodity_id === commodity_id)
     .filter(e => {
-      const ts = Number(e.timestamp_ms || 0);
-      return ts >= fromTs && ts <= now;
+      const ts = (e.timestamp_ms||0);
+      return ts >= fromTs && ts <= toTs;
     })
     .slice()
-    .sort((a,b)=> (Number(a.timestamp_ms||0) - Number(b.timestamp_ms||0)));
+    .sort((a,b)=> (a.timestamp_ms||0)-(b.timestamp_ms||0));
 
-  const labels = series.map(e => e.date || toDateISO(e.timestamp_ms||0));
+  const labels = series.map(e => toDateISO(e.timestamp_ms||0));
   const prices = series.map(e => Number(e.price)||0);
 
+  // latest price
   const latest = series[series.length-1];
-  $("#tLatest").textContent = latest
-    ? `Latest: ${fmtN(latest.price)} on ${latest.date || toDateISO(latest.timestamp_ms)}`
-    : "No data for the selected market + commodity.";
+  $("#tLatest").textContent = latest ? `Latest: ${fmtN(latest.price)} on ${toDateISO(latest.timestamp_ms)}` : "No data for selection.";
+
+  // Build daily aggregate for bar: average per day
+  const daily = new Map();
+  for (const e of series) {
+    const d = toDateISO(e.timestamp_ms||0);
+    const arr = daily.get(d) || [];
+    arr.push(Number(e.price)||0);
+    daily.set(d, arr);
+  }
+  const dLabels = [...daily.keys()].sort();
+  const dAvg = dLabels.map(d => {
+    const arr = daily.get(d) || [];
+    if (!arr.length) return 0;
+    return arr.reduce((a,b)=>a+b,0)/arr.length;
+  });
 
   const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
   const accent = css("--accent") || "#7c4dff";
-  const textCol = css("--text") || "#e9eefc";
+  const text = css("--text") || "#e9eefc";
   const grid = css("--border") || "rgba(255,255,255,0.12)";
 
-  // destroy previous charts safely
+  // destroy previous charts
   try { lineChart?.destroy?.(); } catch(_){}
-  try { barChart?.destroy?.(); } catch(_){}
-  // Price Trend (Line) removed by design (only bar chart kept).
-if (!el) return;
-    const ctx = el.getContext && el.getContext("2d");
-    if (!ctx || typeof Chart === "undefined") return;
 
-    lineChart = new Chart(ctx, {
-      type: "line",
-      data: {
-        labels,
-        datasets: [{
-          label: "Price",
-          data: prices,
-          borderColor: accent,
-          backgroundColor: accent + "22",
-          fill: true,
-          tension: 0.25,
-          pointRadius: 2
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false }, tooltip: { enabled: true } },
-        scales: {
-          x: { ticks: { color: textCol, maxRotation: 0 }, grid: { color: grid } },
-          y: { ticks: { color: textCol }, grid: { color: grid } }
+  // line
+  ensureCanvasReady("tLine", () => {
+    const lineCtx = document.getElementById("tLine")?.getContext?.("2d");
+    if (lineCtx && typeof Chart !== "undefined") {
+      lineChart = new Chart(lineCtx, {
+        type: "line",
+        data: { labels, datasets: [{ label:"Price", data: prices, borderColor: accent, backgroundColor: accent+"22", fill:true, tension:0.25, pointRadius:2 }]},
+        options: { responsive:true, maintainAspectRatio:false,
+          plugins:{ legend:{ display:false }, tooltip:{ enabled:true }},
+          scales:{ x:{ ticks:{ color:text, maxRotation:0 }, grid:{ color:grid }},
+                  y:{ ticks:{ color:text }, grid:{ color:grid } } }
         }
-      }
-    });
+      });
+    }
   });
 
-  // --- Latest Price Across Markets (Bar)
-  // For selected commodity, get the latest price in each market
-  const latestRows = latestByMarketForCommodity(commodity_id)
-    .map(e => ({
-      market: nameById(DB.markets(), e.market_id, "market_id", "market_name"),
-      price: Number(e.price)||0
-    }))
-    .filter(r => Number.isFinite(r.price))
-    .sort((a,b)=> b.price - a.price);
-
-  const barLabels = latestRows.map(r => r.market);
-  const barData = latestRows.map(r => r.price);
-
-  ensureCanvasReady("tBar", () => {
-    const el = document.getElementById("tBar");
-    if (!el) return;
-    const ctx = el.getContext && el.getContext("2d");
-    if (!ctx || typeof Chart === "undefined") return;
-
-    barChart = new Chart(ctx, {
-      type: "bar",
-      data: {
-        labels: barLabels,
-        datasets: [{
-          label: "Latest Price",
-          data: barData,
-          backgroundColor: accent + "77",
-          borderColor: accent,
-          borderWidth: 1
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false }, tooltip: { enabled: true } },
-        scales: {
-          x: { ticks: { color: textCol }, grid: { color: grid } },
-          y: { ticks: { color: textCol }, grid: { color: grid } }
-        }
-      }
-    });
-  });
-  // Candlestick removed by design (only bar chart kept).
-}
-
-function renderCandleForSelection(series) {
-  const container = document.getElementById("tCandle");
-  const hint = document.getElementById("tCandleHint");
-  if (!container) return;
-
-  const ohlc = ohlcFromSeries(series || []);
-  const title = ohlc.length ? `Candlestick points: ${ohlc.length}` : "No data to plot.";
-  renderCandlestick("tCandle", ohlc, title);
-  if (hint) hint.textContent = title;
+  // Candlestick (if library + container exists)
+  try { renderCandleForSelection(series); } catch(_){}
 }
 
 
@@ -1949,20 +1987,6 @@ ensureSeeded();
 hydrateLogin();
 const sess = currentUser();
 if (sess) startApp();
-  async function verifyPassword(password,hash,salt){
-
-const enc = new TextEncoder()
-const data = enc.encode(password + salt)
-
-const digest = await crypto.subtle.digest("SHA-256",data)
-
-const hex = Array.from(new Uint8Array(digest))
-.map(b=>b.toString(16).padStart(2,"0"))
-.join("")
-
-return hex===hash
-
-}
 </script>
 </body>
 </html>

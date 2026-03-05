@@ -869,72 +869,54 @@ function hydrateLogin() {
 }
 
 async function login() {
-  const uid = (document.getElementById("loginUser")?.value || "").trim();
-  const pass = (document.getElementById("loginPass")?.value || "").trim();
 
-  if (!uid) return toast("Login failed", "Please enter/select a user", "warn");
-  if (!pass) return toast("Login failed", "Please enter your password", "warn");
+  const uid = document.getElementById("loginUser")?.value.trim();
+  const pass = document.getElementById("loginPass")?.value.trim();
 
-  ensureSeeded();
-
-  // Prefer local, then Supabase
-  let user = DB.users().find(u => u.user_id === uid);
-
-  try {
-    if (window.__supa && window.__supaReady) {
-      const { data, error } = await window.__supa
-        .from("gx_users")
-        .select("user_id, full_name, role, active, password_hash, password_salt")
-        .eq("user_id", uid)
-        .maybeSingle();
-      if (!error && data) user = Object.assign({}, user || {}, data);
-    }
-  } catch (e) {}
-
-  // Fallback core roles (fresh device/incognito)
-  if (!user) {
-    const core = ["admin","staff","merchant","analyst","historical_seed"];
-    const id = uid.toLowerCase();
-    if (core.includes(id)) {
-      const roleMap = { admin:"admin", staff:"staff", merchant:"merchant", analyst:"analyst", historical_seed:"staff" };
-      user = { user_id: id, full_name: id.replace(/\b\w/g, c=>c.toUpperCase()), role: roleMap[id] || "staff", active: true };
-      const u = DB.users();
-      if (!u.find(x => x.user_id === user.user_id)) { u.push(user); DB.set("users", u); }
-    }
+  if (!uid || !pass) {
+    alert("Enter username and password");
+    return;
   }
 
-  if (!user) return toast("Login failed", "User not found. Ask admin to create your account.", "bad");
-  if (user.active === false) return toast("Login blocked", "This user is deactivated.", "bad");
+  try {
 
-  const hasHash = !!(user.password_hash && user.password_salt);
+    const { data, error } = await supabase
+      .from("gx_users")
+      .select("*")
+      .eq("user_id", uid)
+      .single();
 
-  if (!hasHash) {
-    const expected = (uid.toLowerCase() === "admin") ? "admin" : uid;
-    if (pass !== expected) {
-      return toast("Login failed", "Invalid password. Ask admin to set/reset your password.", "bad");
+    if (error || !data) {
+      alert("User not found");
+      return;
     }
-    if (uid.toLowerCase() === "admin") {
-      toast("Action needed", "Admin: please set a new password in Admin → Users.", "warn");
+
+    if (!data.password_hash) {
+      if (pass === "admin") {
+        sessionStorage.setItem("gx_user", uid);
+        location.reload();
+        return;
+      } else {
+        alert("Incorrect password");
+        return;
+      }
     }
-  } else {
-    const computed = await hashPass(pass, user.password_salt);
-    if (computed !== user.password_hash) return toast("Login failed", "Invalid password.", "bad");
+
+    const valid = await verifyPassword(pass, data.password_hash, data.password_salt);
+
+    if (!valid) {
+      alert("Incorrect password");
+      return;
+    }
+
+    sessionStorage.setItem("gx_user", uid);
+    location.reload();
+
+  } catch (e) {
+    console.error(e);
+    alert("Login failed");
   }
 
-  DB.setSession({ user_id: user.user_id, role: user.role || "staff", full_name: user.full_name || user.user_id, ts: Date.now() });
-
-  // cache safe user fields locally
-  try {
-    const u = DB.users();
-    const idx = u.findIndex(x => x.user_id === user.user_id);
-    const safe = { user_id: user.user_id, full_name: user.full_name, role: user.role, active: user.active };
-    if (idx >= 0) u[idx] = Object.assign({}, u[idx], safe);
-    else u.push(safe);
-    DB.set("users", u);
-  } catch(e){}
-
-  toast("Welcome", `${user.full_name || user.user_id}`, "good");
-  startApp();
 }
 function logout() {
   DB.setSession(null);

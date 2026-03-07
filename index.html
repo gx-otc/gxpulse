@@ -1,0 +1,3531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>GXPULSE – GX OTC Market Price Intelligence</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" href="favicon.ico" />
+  <!-- Minimal reset -->
+  <style>
+    :root {
+      --bg-main: #0b0c10;
+      --bg-elevated: #151821;
+      --bg-elevated-soft: #1d2130;
+      --accent: #00d1b2;
+      --accent-soft: rgba(0, 209, 178, 0.15);
+      --accent-strong: #00f5c4;
+      --text-main: #f5f7fb;
+      --text-muted: #a0a4b8;
+      --danger: #ff4d4f;
+      --warning: #faad14;
+      --border-subtle: #2a2f3f;
+      --card-radius: 10px;
+      --transition-fast: 0.15s ease-out;
+      --sidebar-width: 250px;
+      --header-height: 56px;
+      --shadow-soft: 0 8px 24px rgba(0, 0, 0, 0.35);
+      --font-main: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      height: 100%;
+      background: radial-gradient(circle at top, #151821 0, #05060a 55%, #020308 100%);
+      color: var(--text-main);
+      font-family: var(--font-main);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    button {
+      font-family: inherit;
+    }
+
+    /* Layout */
+    .app-shell {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+    }
+
+    .sidebar {
+      width: var(--sidebar-width);
+      background: linear-gradient(180deg, #11131c 0%, #05060a 100%);
+      border-right: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      z-index: 20;
+    }
+
+    .sidebar-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .logo-circle {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 20%, #00f5c4 0, #00d1b2 40%, #007f73 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #020308;
+      font-weight: 800;
+      font-size: 18px;
+      box-shadow: 0 0 0 2px rgba(0, 209, 178, 0.35);
+    }
+
+    .sidebar-title-block {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .sidebar-title {
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+    }
+
+    .sidebar-subtitle {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .sidebar-menu {
+      padding: 10px 8px 12px;
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .menu-section-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--text-muted);
+      padding: 10px 12px 4px;
+    }
+
+    .menu-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      margin: 2px 4px;
+      border-radius: 8px;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: background var(--transition-fast), color var(--transition-fast), transform var(--transition-fast);
+      font-size: 13px;
+    }
+
+    .menu-item:hover {
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-main);
+      transform: translateX(1px);
+    }
+
+    .menu-item.active {
+      background: var(--accent-soft);
+      color: var(--accent-strong);
+      box-shadow: 0 0 0 1px rgba(0, 209, 178, 0.35);
+    }
+
+    .menu-item-icon {
+      width: 18px;
+      text-align: center;
+      font-size: 14px;
+    }
+
+    .sidebar-footer {
+      padding: 10px 12px 12px;
+      border-top: 1px solid var(--border-subtle);
+      font-size: 11px;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .badge-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .badge {
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--border-subtle);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+    }
+
+    .badge-accent {
+      border-color: rgba(0, 209, 178, 0.6);
+      color: var(--accent-strong);
+      background: rgba(0, 209, 178, 0.08);
+    }
+
+    .version-text {
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    .role-select-row {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-top: 4px;
+    }
+
+    .role-select-row label {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .role-select-row select {
+      width: 100%;
+      padding: 4px 8px;
+      border-radius: 6px;
+      border: 1px solid var(--border-subtle);
+      background: #0f1118;
+      color: var(--text-main);
+      font-size: 12px;
+      outline: none;
+    }
+
+    .role-select-row select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(0, 209, 178, 0.35);
+    }
+
+    .test-mode-indicator {
+      font-size: 10px;
+      color: var(--accent-strong);
+    }
+
+    /* Top bar */
+    .main-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      min-height: 0;
+    }
+
+    .topbar {
+      height: var(--header-height);
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 14px;
+      background: rgba(5, 6, 12, 0.96);
+      backdrop-filter: blur(10px);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .hamburger {
+      display: none;
+      width: 32px;
+      height: 32px;
+      border-radius: 999px;
+      border: 1px solid var(--border-subtle);
+      background: #10121a;
+      color: var(--text-main);
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background var(--transition-fast), transform var(--transition-fast), border-color var(--transition-fast);
+    }
+
+    .hamburger span {
+      display: block;
+      width: 16px;
+      height: 2px;
+      background: var(--text-main);
+      position: relative;
+    }
+
+    .hamburger span::before,
+    .hamburger span::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      width: 16px;
+      height: 2px;
+      background: var(--text-main);
+    }
+
+    .hamburger span::before {
+      top: -5px;
+    }
+
+    .hamburger span::after {
+      top: 5px;
+    }
+
+    .hamburger:hover {
+      background: #181b26;
+      border-color: var(--accent);
+      transform: translateY(-1px);
+    }
+
+    .topbar-title {
+      font-size: 15px;
+      font-weight: 500;
+    }
+
+    .topbar-subtitle {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .pill {
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border-subtle);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(10, 12, 20, 0.9);
+    }
+
+    .pill-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 3px rgba(0, 209, 178, 0.25);
+    }
+
+    .pill-dot.offline {
+      background: var(--danger);
+      box-shadow: 0 0 0 3px rgba(255, 77, 79, 0.25);
+    }
+
+    .pill-label {
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .pill-value {
+      color: var(--accent-strong);
+    }
+
+    .btn-ghost {
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border-subtle);
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 11px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), transform var(--transition-fast);
+    }
+
+    .btn-ghost:hover {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: var(--accent);
+      color: var(--text-main);
+      transform: translateY(-1px);
+    }
+
+    .btn-ghost-danger {
+      border-color: rgba(255, 77, 79, 0.5);
+      color: #ffb3b4;
+    }
+
+    .btn-ghost-danger:hover {
+      background: rgba(255, 77, 79, 0.08);
+      color: #ffe5e6;
+    }
+
+    /* Content */
+    .content {
+      flex: 1;
+      padding: 14px 16px 18px;
+      overflow-y: auto;
+      min-height: 0;
+    }
+
+    .page {
+      display: none;
+      animation: fadeIn 0.18s ease-out;
+    }
+
+    .page.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .page-title-block {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .page-title {
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .page-subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .page-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .tag {
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--border-subtle);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+    }
+
+    .tag-accent {
+      border-color: rgba(0, 209, 178, 0.6);
+      color: var(--accent-strong);
+      background: rgba(0, 209, 178, 0.08);
+    }
+
+    /* Cards & grids */
+    .grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .grid-4 {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .grid-3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .grid-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .grid-responsive {
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+
+    .card {
+      background: radial-gradient(circle at top left, #1f2433 0, #11131c 40%, #05060a 100%);
+      border-radius: var(--card-radius);
+      border: 1px solid var(--border-subtle);
+      padding: 10px 12px;
+      box-shadow: var(--shadow-soft);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .card-title {
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .card-subtitle {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .card-body {
+      font-size: 13px;
+    }
+
+    .kpi-value {
+      font-size: 20px;
+      font-weight: 600;
+    }
+
+    .kpi-label {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .kpi-trend {
+      font-size: 11px;
+      margin-top: 4px;
+    }
+
+    .kpi-trend.positive {
+      color: var(--accent-strong);
+    }
+
+    .kpi-trend.negative {
+      color: var(--danger);
+    }
+
+    .kpi-trend span {
+      opacity: 0.8;
+    }
+
+    .card-footer-note {
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-top: 6px;
+    }
+
+    .chart-container {
+      position: relative;
+      width: 100%;
+      min-height: 180px;
+      max-height: 260px;
+    }
+
+    .chart-placeholder {
+      font-size: 12px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 180px;
+    }
+
+    .table-wrapper {
+      width: 100%;
+      overflow-x: auto;
+      margin-top: 4px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      min-width: 480px;
+    }
+
+    th, td {
+      padding: 6px 8px;
+      border-bottom: 1px solid var(--border-subtle);
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    th {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    tr:nth-child(even) td {
+      background: rgba(255, 255, 255, 0.01);
+    }
+
+    tr:hover td {
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .status-pill {
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .status-pill-ok {
+      background: rgba(0, 209, 178, 0.12);
+      color: var(--accent-strong);
+      border: 1px solid rgba(0, 209, 178, 0.5);
+    }
+
+    .status-pill-warn {
+      background: rgba(250, 173, 20, 0.12);
+      color: #ffd666;
+      border: 1px solid rgba(250, 173, 20, 0.5);
+    }
+
+    .status-pill-bad {
+      background: rgba(255, 77, 79, 0.12);
+      color: #ffb3b4;
+      border: 1px solid rgba(255, 77, 79, 0.5);
+    }
+
+    .muted {
+      color: var(--text-muted);
+    }
+
+    .small {
+      font-size: 11px;
+    }
+
+    .input-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      min-width: 120px;
+      flex: 1;
+    }
+
+    .input-group label {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .input-group input,
+    .input-group select,
+    .input-group textarea {
+      padding: 6px 8px;
+      border-radius: 6px;
+      border: 1px solid var(--border-subtle);
+      background: #0f1118;
+      color: var(--text-main);
+      font-size: 12px;
+      outline: none;
+      min-height: 30px;
+    }
+
+    .input-group textarea {
+      resize: vertical;
+      min-height: 60px;
+    }
+
+    .input-group input:focus,
+    .input-group select:focus,
+    .input-group textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(0, 209, 178, 0.35);
+    }
+
+    .btn-primary {
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: none;
+      background: linear-gradient(135deg, #00d1b2, #00f5c4);
+      color: #020308;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 8px 20px rgba(0, 209, 178, 0.35);
+      transition: transform var(--transition-fast), box-shadow var(--transition-fast), filter var(--transition-fast);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.05);
+      box-shadow: 0 10px 26px rgba(0, 209, 178, 0.45);
+    }
+
+    .btn-primary:active {
+      transform: translateY(0);
+      box-shadow: 0 4px 12px rgba(0, 209, 178, 0.3);
+    }
+
+    .btn-secondary {
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--border-subtle);
+      background: #10121a;
+      color: var(--text-main);
+      font-size: 12px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
+    }
+
+    .btn-secondary:hover {
+      background: #181b26;
+      border-color: var(--accent);
+      transform: translateY(-1px);
+    }
+
+    .btn-sm {
+      padding: 4px 8px;
+      font-size: 11px;
+    }
+
+    .pill-badge {
+      padding: 2px 6px;
+      border-radius: 999px;
+      border: 1px solid var(--border-subtle);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+    }
+
+    .no-data {
+      font-size: 12px;
+      color: var(--text-muted);
+      padding: 10px 0;
+    }
+
+    .message-box {
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px dashed var(--border-subtle);
+      background: rgba(255, 255, 255, 0.02);
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 6px;
+    }
+
+    .message-box strong {
+      color: var(--accent-strong);
+    }
+
+    .message-box.warn strong {
+      color: #ffd666;
+    }
+
+    .message-box.error strong {
+      color: #ffb3b4;
+    }
+
+    .flex-between {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .flex-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .mt-4 { margin-top: 4px; }
+    .mt-6 { margin-top: 6px; }
+    .mt-8 { margin-top: 8px; }
+    .mt-10 { margin-top: 10px; }
+
+    .text-right { text-align: right; }
+
+    .chip {
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--border-subtle);
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    .chip-success {
+      border-color: rgba(0, 209, 178, 0.6);
+      color: var(--accent-strong);
+    }
+
+    .chip-warn {
+      border-color: rgba(250, 173, 20, 0.6);
+      color: #ffd666;
+    }
+
+    .chip-error {
+      border-color: rgba(255, 77, 79, 0.6);
+      color: #ffb3b4;
+    }
+
+    .text-accent {
+      color: var(--accent-strong);
+    }
+
+    .text-danger {
+      color: var(--danger);
+    }
+
+    .text-warn {
+      color: var(--warning);
+    }
+
+    .text-xs {
+      font-size: 10px;
+    }
+
+    .divider {
+      height: 1px;
+      background: var(--border-subtle);
+      margin: 6px 0;
+    }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .sidebar {
+        position: fixed;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        transform: translateX(-100%);
+        transition: transform 0.2s ease-out;
+        box-shadow: 12px 0 30px rgba(0, 0, 0, 0.6);
+      }
+
+      .sidebar.open {
+        transform: translateX(0);
+      }
+
+      .hamburger {
+        display: inline-flex;
+      }
+
+      .app-shell {
+        position: relative;
+      }
+
+      .content {
+        padding: 10px 10px 14px;
+      }
+
+      .grid-4 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .grid-3 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 640px) {
+      .grid-4,
+      .grid-3,
+      .grid-2 {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .topbar {
+        padding-inline: 10px;
+      }
+
+      table {
+        min-width: 420px;
+      }
+    }
+  </style>
+
+  <!-- Chart.js CDN (single external dependency, stable) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="logo-circle">GX</div>
+        <div class="sidebar-title-block">
+          <div class="sidebar-title">GXPULSE</div>
+          <div class="sidebar-subtitle">OTC Market Price Intelligence</div>
+        </div>
+      </div>
+      <nav class="sidebar-menu" id="sidebarMenu">
+        <div class="menu-section-label">Navigation</div>
+        <div class="menu-item active" data-page="dashboard">
+          <div class="menu-item-icon">📊</div>
+          <div>Dashboard</div>
+        </div>
+        <div class="menu-item" data-page="reports">
+          <div class="menu-item-icon">📑</div>
+          <div>Reports</div>
+        </div>
+        <div class="menu-item" data-page="trends">
+          <div class="menu-item-icon">📈</div>
+          <div>Trend Charts</div>
+        </div>
+        <div class="menu-item" data-page="compare">
+          <div class="menu-item-icon">⚖️</div>
+          <div>Market Compare</div>
+        </div>
+        <div class="menu-item" data-page="arbitrage">
+          <div class="menu-item-icon">🔍</div>
+          <div>Arbitrage</div>
+        </div>
+        <div class="menu-item" data-page="admin">
+          <div class="menu-item-icon">🛠️</div>
+          <div>Admin</div>
+        </div>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="badge-row">
+          <span class="badge badge-accent" id="appVersionBadge">v0.1.0</span>
+          <span class="badge" id="buildTimestampBadge">build-</span>
+        </div>
+        <div class="role-select-row">
+          <label for="roleSelect">Test Role</label>
+          <select id="roleSelect">
+            <option value="admin">Admin</option>
+            <option value="staff">Staff</option>
+            <option value="merchant">Merchant</option>
+            <option value="analyst">Analyst</option>
+          </select>
+        </div>
+        <div class="test-mode-indicator" id="testModeIndicator">
+          TEST MODE: Enabled (no password required)
+        </div>
+        <div class="version-text">
+          Supabase sync: <span id="supabaseStatusText">Local-only</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main area -->
+    <div class="main-area">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="hamburger" id="hamburgerBtn" aria-label="Toggle menu">
+            <span></span>
+          </button>
+          <div>
+            <div class="topbar-title">GX OTC Market Price Intelligence</div>
+            <div class="topbar-subtitle" id="currentPageLabel">Dashboard overview</div>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <div class="pill" id="cloudStatusPill">
+            <span class="pill-dot offline" id="cloudStatusDot"></span>
+            <span class="pill-label">Cloud</span>
+            <span class="pill-value" id="cloudStatusLabel">Offline</span>
+          </div>
+          <button class="btn-ghost btn-ghost-danger" id="clearCacheBtn">
+            ⟳ Clear Local Cache
+          </button>
+        </div>
+      </header>
+
+      <main class="content">
+        <!-- DASHBOARD -->
+        <section class="page active" id="page-dashboard">
+          <div class="page-header">
+            <div class="page-title-block">
+              <div class="page-title">Dashboard</div>
+              <div class="page-subtitle">
+                Compact overview of markets, commodities, and latest OTC price activity.
+              </div>
+            </div>
+            <div class="page-actions">
+              <span class="tag tag-accent">Test Mode</span>
+              <span class="tag">Role: <span id="roleLabel">Admin</span></span>
+            </div>
+          </div>
+
+          <!-- KPI row -->
+          <div class="grid grid-4 mt-4">
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">Active Markets</div>
+                  <div class="card-subtitle">Currently tracked</div>
+                </div>
+                <span class="chip chip-success">Live</span>
+              </div>
+              <div class="card-body">
+                <div class="kpi-value" id="kpiMarkets">0</div>
+                <div class="kpi-label">Markets with at least one recent entry</div>
+                <div class="kpi-trend positive" id="kpiMarketsTrend">
+                  ▲ <span>vs. last period</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">Tracked Commodities</div>
+                  <div class="card-subtitle">Unique canonical items</div>
+                </div>
+                <span class="chip chip-success">Stable</span>
+              </div>
+              <div class="card-body">
+                <div class="kpi-value" id="kpiCommodities">0</div>
+                <div class="kpi-label">Across all configured markets</div>
+                <div class="kpi-trend positive" id="kpiCommoditiesTrend">
+                  ▲ <span>coverage improving</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">Entries (Last 7 Days)</div>
+                  <div class="card-subtitle">Recent OTC price submissions</div>
+                </div>
+                <span class="chip chip-warn">Rolling</span>
+              </div>
+              <div class="card-body">
+                <div class="kpi-value" id="kpiEntries7d">0</div>
+                <div class="kpi-label">All roles combined</div>
+                <div class="kpi-trend positive" id="kpiEntriesTrend">
+                  ▲ <span>activity healthy</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">Avg. Spread (₦)</div>
+                  <div class="card-subtitle">Across markets, latest prices</div>
+                </div>
+                <span class="chip chip-success">Arbitrage</span>
+              </div>
+              <div class="card-body">
+                <div class="kpi-value" id="kpiSpread">0</div>
+                <div class="kpi-label">Indicative opportunity window</div>
+                <div class="kpi-trend" id="kpiSpreadTrend">
+                  <span>Neutral baseline</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Charts & quick entry -->
+          <div class="grid grid-3 mt-8">
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">Commodity Share (Latest Entries)</div>
+                  <div class="card-subtitle">Distribution by commodity</div>
+                </div>
+                <span class="pill-badge">Pie</span>
+              </div>
+              <div class="card-body">
+                <div class="chart-container">
+                  <canvas id="dashboardPieChart"></canvas>
+                  <div class="chart-placeholder" id="dashboardPiePlaceholder" style="display:none;">
+                    No data available for commodity share.
+                  </div>
+                </div>
+                <div class="card-footer-note">
+                  Based on most recent entries per commodity across all markets.
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">Entries Over Time</div>
+                  <div class="card-subtitle">Recent submission trend</div>
+                </div>
+                <span class="pill-badge">Time Series</span>
+              </div>
+              <div class="card-body">
+                <div class="chart-container">
+                  <canvas id="dashboardLineChart"></canvas>
+                  <div class="chart-placeholder" id="dashboardLinePlaceholder" style="display:none;">
+                    No data available for recent entries.
+                  </div>
+                </div>
+                <div class="card-footer-note">
+                  Aggregated count of entries per day (local cache + cloud).
+                </div>
+              </div>
+            </div>
+
+            <!-- Quick Price Entry (Admin + Staff only) -->
+            <div class="card" id="quickEntryCard">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">Quick Price Entry</div>
+                  <div class="card-subtitle">Admin & Staff only</div>
+                </div>
+                <span class="pill-badge">Role-gated</span>
+              </div>
+              <div class="card-body">
+                <form id="quickEntryForm">
+                  <div class="input-row">
+                    <div class="input-group">
+                      <label for="qeMarket">Market</label>
+                      <select id="qeMarket" required></select>
+                    </div>
+                    <div class="input-group">
+                      <label for="qeCommodity">Commodity</label>
+                      <select id="qeCommodity" required></select>
+                    </div>
+                  </div>
+                  <div class="input-row">
+                    <div class="input-group">
+                      <label for="qePrice">Price (₦)</label>
+                      <input type="number" id="qePrice" min="0" step="1" required />
+                    </div>
+                    <div class="input-group">
+                      <label for="qeUnit">Unit</label>
+                      <input type="text" id="qeUnit" placeholder="e.g. 100kg bag" />
+                    </div>
+                  </div>
+                  <div class="input-row">
+                    <div class="input-group">
+                      <label for="qeDate">Date</label>
+                      <input type="date" id="qeDate" required />
+                    </div>
+                    <div class="input-group">
+                      <label for="qeRemarks">Remarks</label>
+                      <input type="text" id="qeRemarks" placeholder="Optional note" />
+                    </div>
+                  </div>
+                  <div class="flex-between mt-6">
+                    <button type="submit" class="btn-primary">
+                      ➕ Save Entry
+                    </button>
+                    <span class="small muted" id="quickEntryStatus">Local-only save in test mode.</span>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          <!-- Latest activity table -->
+          <div class="card mt-8">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Latest Price Activity</div>
+                <div class="card-subtitle">Most recent entries across all markets</div>
+              </div>
+              <span class="pill-badge">Live snapshot</span>
+            </div>
+            <div class="card-body">
+              <div class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Market</th>
+                      <th>Commodity</th>
+                      <th class="text-right">Price (₦)</th>
+                      <th class="text-right">Prev (₦)</th>
+                      <th class="text-right">Δ</th>
+                      <th>Source</th>
+                    </tr>
+                  </thead>
+                  <tbody id="latestActivityTableBody">
+                    <!-- Filled by JS -->
+                  </tbody>
+                </table>
+              </div>
+              <div class="no-data" id="latestActivityEmpty" style="display:none;">
+                No entries found yet. Use Quick Price Entry or seed data to begin.
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- REPORTS -->
+        <section class="page" id="page-reports">
+          <div class="page-header">
+            <div class="page-title-block">
+              <div class="page-title">Reports</div>
+              <div class="page-subtitle">
+                Structured tables with filters for market, commodity, and date range.
+              </div>
+            </div>
+            <div class="page-actions">
+              <span class="tag">Tabular-first</span>
+              <span class="tag">Charts optional</span>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Filter</div>
+                <div class="card-subtitle">Refine report output</div>
+              </div>
+              <span class="pill-badge">Local cache + cloud</span>
+            </div>
+            <div class="card-body">
+              <div class="input-row">
+                <div class="input-group">
+                  <label for="reportMarket">Market</label>
+                  <select id="reportMarket">
+                    <option value="">All markets</option>
+                  </select>
+                </div>
+                <div class="input-group">
+                  <label for="reportCommodity">Commodity</label>
+                  <select id="reportCommodity">
+                    <option value="">All commodities</option>
+                  </select>
+                </div>
+                <div class="input-group">
+                  <label for="reportUser">User</label>
+                  <select id="reportUser">
+                    <option value="">All users</option>
+                  </select>
+                </div>
+              </div>
+              <div class="input-row">
+                <div class="input-group">
+                  <label for="reportDateRange">Quick Range</label>
+                  <select id="reportDateRange">
+                    <option value="7d">Last 7 days</option>
+                    <option value="30d">Last 30 days</option>
+                    <option value="90d">Last 90 days</option>
+                    <option value="ytd">Year to date</option>
+                    <option value="all">All time</option>
+                    <option value="custom">Custom range</option>
+                  </select>
+                </div>
+                <div class="input-group">
+                  <label for="reportDateFrom">From</label>
+                  <input type="date" id="reportDateFrom" />
+                </div>
+                <div class="input-group">
+                  <label for="reportDateTo">To</label>
+                  <input type="date" id="reportDateTo" />
+                </div>
+                <div class="input-group" style="max-width:140px;">
+                  <label>&nbsp;</label>
+                  <button class="btn-secondary btn-sm" id="reportApplyBtn">
+                    Apply
+                  </button>
+                </div>
+              </div>
+              <div class="message-box mt-4">
+                <strong>Note:</strong> Reports are fully usable without charts. Filters operate on normalized IDs (market_id, commodity_id, date).
+              </div>
+            </div>
+          </div>
+
+          <div class="card mt-8">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Price Entries</div>
+                <div class="card-subtitle">Filtered results</div>
+              </div>
+              <span class="pill-badge" id="reportCountBadge">0 rows</span>
+            </div>
+            <div class="card-body">
+              <div class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Market</th>
+                      <th>Commodity</th>
+                      <th>Unit</th>
+                      <th class="text-right">Price (₦)</th>
+                      <th class="text-right">Prev (₦)</th>
+                      <th class="text-right">Δ</th>
+                      <th>User</th>
+                      <th>Source</th>
+                    </tr>
+                  </thead>
+                  <tbody id="reportsTableBody">
+                    <!-- Filled by JS -->
+                  </tbody>
+                </table>
+              </div>
+              <div class="no-data" id="reportsEmpty" style="display:none;">
+                No entries match the selected filters.
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- TREND CHARTS -->
+        <section class="page" id="page-trends">
+          <div class="page-header">
+            <div class="page-title-block">
+              <div class="page-title">Trend Charts</div>
+              <div class="page-subtitle">
+                Latest price across markets and optional time-series trends.
+              </div>
+            </div>
+            <div class="page-actions">
+              <span class="tag tag-accent">Charts-first</span>
+              <span class="tag">Tables always available</span>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Latest Price Across Markets</div>
+                <div class="card-subtitle">Per selected commodity</div>
+              </div>
+              <div class="flex-row">
+                <div class="input-group" style="min-width:160px;">
+                  <label for="trendCommodity">Commodity</label>
+                  <select id="trendCommodity"></select>
+                </div>
+                <span class="pill-badge">Bar / Column</span>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="chart-container">
+                <canvas id="trendLatestChart"></canvas>
+                <div class="chart-placeholder" id="trendLatestPlaceholder" style="display:none;">
+                  No data available for latest price across markets.
+                </div>
+              </div>
+              <div class="card-footer-note">
+                Uses latest entry per market for the selected commodity. If data is missing, a clear message is shown instead of a blank chart.
+              </div>
+            </div>
+          </div>
+
+          <div class="card mt-8">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Optional Time-Series Trend</div>
+                <div class="card-subtitle">Per market & commodity (if data is sufficient)</div>
+              </div>
+              <div class="flex-row">
+                <div class="input-group" style="min-width:160px;">
+                  <label for="trendMarket">Market</label>
+                  <select id="trendMarket"></select>
+                </div>
+                <div class="input-group" style="min-width:160px;">
+                  <label for="trendCommodity2">Commodity</label>
+                  <select id="trendCommodity2"></select>
+                </div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="chart-container">
+                <canvas id="trendTimeChart"></canvas>
+                <div class="chart-placeholder" id="trendTimePlaceholder" style="display:none;">
+                  Not enough data to render a time-series trend for this selection.
+                </div>
+              </div>
+              <div class="card-footer-note">
+                Time-series is rendered only when data is sufficient and stable. Otherwise, a clear “No data” message is shown.
+              </div>
+            </div>
+          </div>
+
+          <div class="card mt-8">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Trend Data Table</div>
+                <div class="card-subtitle">Underlying values for selected trend</div>
+              </div>
+              <span class="pill-badge">Tabular</span>
+            </div>
+            <div class="card-body">
+              <div class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Market</th>
+                      <th>Commodity</th>
+                      <th class="text-right">Price (₦)</th>
+                    </tr>
+                  </thead>
+                  <tbody id="trendTableBody">
+                    <!-- Filled by JS -->
+                  </tbody>
+                </table>
+              </div>
+              <div class="no-data" id="trendTableEmpty" style="display:none;">
+                No trend data for the current selection.
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- MARKET COMPARE -->
+        <section class="page" id="page-compare">
+          <div class="page-header">
+            <div class="page-title-block">
+              <div class="page-title">Market Compare</div>
+              <div class="page-subtitle">
+                Compare prices across markets for a selected commodity and date range.
+              </div>
+            </div>
+            <div class="page-actions">
+              <span class="tag">Compare</span>
+              <span class="tag">Chart + Table</span>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Compare Filters</div>
+                <div class="card-subtitle">Commodity and date range</div>
+              </div>
+              <span class="pill-badge">Stable</span>
+            </div>
+            <div class="card-body">
+              <div class="input-row">
+                <div class="input-group">
+                  <label for="compareCommodity">Commodity</label>
+                  <select id="compareCommodity"></select>
+                </div>
+                <div class="input-group">
+                  <label for="compareDateRange">Quick Range</label>
+                  <select id="compareDateRange">
+                    <option value="7d">Last 7 days</option>
+                    <option value="30d">Last 30 days</option>
+                    <option value="90d">Last 90 days</option>
+                    <option value="all">All time</option>
+                  </select>
+                </div>
+                <div class="input-group">
+                  <label for="compareDateFrom">From</label>
+                  <input type="date" id="compareDateFrom" />
+                </div>
+                <div class="input-group">
+                  <label for="compareDateTo">To</label>
+                  <input type="date" id="compareDateTo" />
+                </div>
+                <div class="input-group" style="max-width:140px;">
+                  <label>&nbsp;</label>
+                  <button class="btn-secondary btn-sm" id="compareApplyBtn">
+                    Apply
+                  </button>
+                </div>
+              </div>
+              <div class="message-box mt-4 warn" id="compareMessageBox" style="display:none;">
+                <strong>Note:</strong> Not enough comparable data exists for this selection. Table will still show any available rows.
+              </div>
+            </div>
+          </div>
+
+          <div class="card mt-8">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Market Comparison Chart</div>
+                <div class="card-subtitle">Average price per market</div>
+              </div>
+              <span class="pill-badge">Bar</span>
+            </div>
+            <div class="card-body">
+              <div class="chart-container">
+                <canvas id="compareChart"></canvas>
+                <div class="chart-placeholder" id="comparePlaceholder" style="display:none;">
+                  No comparable data for the selected filters.
+                </div>
+              </div>
+              <div class="card-footer-note">
+                Simple, stable visualization. If data is insufficient, a clear message is shown instead of a blank chart.
+              </div>
+            </div>
+          </div>
+
+          <div class="card mt-8">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Market Comparison Table</div>
+                <div class="card-subtitle">Underlying values</div>
+              </div>
+              <span class="pill-badge" id="compareCountBadge">0 rows</span>
+            </div>
+            <div class="card-body">
+              <div class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Market</th>
+                      <th>Commodity</th>
+                      <th class="text-right">Avg Price (₦)</th>
+                      <th class="text-right">Min (₦)</th>
+                      <th class="text-right">Max (₦)</th>
+                      <th class="text-right">Count</th>
+                    </tr>
+                  </thead>
+                  <tbody id="compareTableBody">
+                    <!-- Filled by JS -->
+                  </tbody>
+                </table>
+              </div>
+              <div class="no-data" id="compareTableEmpty" style="display:none;">
+                No comparison data for the selected filters.
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ARBITRAGE -->
+        <section class="page" id="page-arbitrage">
+          <div class="page-header">
+            <div class="page-title-block">
+              <div class="page-title">Arbitrage</div>
+              <div class="page-subtitle">
+                Price spread opportunities across markets for selected commodities.
+              </div>
+            </div>
+            <div class="page-actions">
+              <span class="tag">Spread</span>
+              <span class="tag">Practical utility</span>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Arbitrage Filters</div>
+                <div class="card-subtitle">Commodity and date range</div>
+              </div>
+              <span class="pill-badge">Spread</span>
+            </div>
+            <div class="card-body">
+              <div class="input-row">
+                <div class="input-group">
+                  <label for="arbCommodity">Commodity</label>
+                  <select id="arbCommodity"></select>
+                </div>
+                <div class="input-group">
+                  <label for="arbDateRange">Quick Range</label>
+                  <select id="arbDateRange">
+                    <option value="7d">Last 7 days</option>
+                    <option value="30d">Last 30 days</option>
+                    <option value="90d">Last 90 days</option>
+                    <option value="all">All time</option>
+                  </select>
+                </div>
+                <div class="input-group">
+                  <label for="arbDateFrom">From</label>
+                  <input type="date" id="arbDateFrom" />
+                </div>
+                <div class="input-group">
+                  <label for="arbDateTo">To</label>
+                  <input type="date" id="arbDateTo" />
+                </div>
+                <div class="input-group" style="max-width:140px;">
+                  <label>&nbsp;</label>
+                  <button class="btn-secondary btn-sm" id="arbApplyBtn">
+                    Apply
+                  </button>
+                </div>
+              </div>
+              <div class="message-box mt-4" id="arbMessageBox">
+                <strong>Note:</strong> Arbitrage focuses on practical spreads. If insufficient data exists, a clear message is shown instead of misleading values.
+              </div>
+            </div>
+          </div>
+
+          <div class="card mt-8">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Arbitrage Summary</div>
+                <div class="card-subtitle">Top spread opportunities</div>
+              </div>
+              <span class="pill-badge" id="arbCountBadge">0 opportunities</span>
+            </div>
+            <div class="card-body">
+              <div class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Commodity</th>
+                      <th>Buy Market</th>
+                      <th>Sell Market</th>
+                      <th class="text-right">Buy (₦)</th>
+                      <th class="text-right">Sell (₦)</th>
+                      <th class="text-right">Spread (₦)</th>
+                    </tr>
+                  </thead>
+                  <tbody id="arbTableBody">
+                    <!-- Filled by JS -->
+                  </tbody>
+                </table>
+              </div>
+              <div class="no-data" id="arbTableEmpty" style="display:none;">
+                No arbitrage opportunities detected for the selected filters.
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ADMIN -->
+        <section class="page" id="page-admin">
+          <div class="page-header">
+            <div class="page-title-block">
+              <div class="page-title">Admin</div>
+              <div class="page-subtitle">
+                Manage users, markets, commodities, cloud sync, and test mode settings.
+              </div>
+            </div>
+            <div class="page-actions">
+              <span class="tag tag-accent">Admin-only</span>
+              <span class="tag">Future auth-ready</span>
+            </div>
+          </div>
+
+          <div class="grid grid-2">
+            <!-- Users management -->
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">Users</div>
+                  <div class="card-subtitle">Role & status overview</div>
+                </div>
+                <span class="pill-badge">gx_users</span>
+              </div>
+              <div class="card-body">
+                <div class="table-wrapper">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Name</th>
+                        <th>Role</th>
+                        <th>Phone</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody id="adminUsersTableBody">
+                      <!-- Filled by JS -->
+                    </tbody>
+                  </table>
+                </div>
+                <div class="no-data" id="adminUsersEmpty" style="display:none;">
+                  No users configured in local seed.
+                </div>
+              </div>
+            </div>
+
+            <!-- Markets management -->
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">Markets</div>
+                  <div class="card-subtitle">Configured OTC markets</div>
+                </div>
+                <span class="pill-badge">gx_markets</span>
+              </div>
+              <div class="card-body">
+                <div class="table-wrapper">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Market</th>
+                        <th>State</th>
+                        <th>Country</th>
+                        <th>Active</th>
+                      </tr>
+                    </thead>
+                    <tbody id="adminMarketsTableBody">
+                      <!-- Filled by JS -->
+                    </tbody>
+                  </table>
+                </div>
+                <div class="no-data" id="adminMarketsEmpty" style="display:none;">
+                  No markets configured in local seed.
+                </div>
+              </div>
+            </div>
+
+            <!-- Commodities management -->
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">Commodities</div>
+                  <div class="card-subtitle">Canonical list</div>
+                </div>
+                <span class="pill-badge">gx_commodities</span>
+              </div>
+              <div class="card-body">
+                <div class="table-wrapper">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Commodity</th>
+                        <th>Key</th>
+                        <th>Unit</th>
+                        <th>Active</th>
+                      </tr>
+                    </thead>
+                    <tbody id="adminCommoditiesTableBody">
+                      <!-- Filled by JS -->
+                    </tbody>
+                  </table>
+                </div>
+                <div class="no-data" id="adminCommoditiesEmpty" style="display:none;">
+                  No commodities configured in local seed.
+                </div>
+              </div>
+            </div>
+
+            <!-- Cloud sync & settings -->
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">Cloud Sync & Settings</div>
+                  <div class="card-subtitle">Supabase + test mode</div>
+                </div>
+                <span class="pill-badge">gx_entries</span>
+              </div>
+              <div class="card-body">
+                <div class="message-box">
+                  <strong>Supabase:</strong> This app is Supabase-ready. In test mode, it runs fully local. When configured, it can operate in local + cloud sync mode without breaking the UI.
+                </div>
+                <div class="divider"></div>
+                <div class="flex-row mt-6">
+                  <button class="btn-secondary btn-sm" id="testCloudPingBtn">
+                    Test Cloud Connection
+                  </button>
+                  <button class="btn-secondary btn-sm" id="syncPullBtn">
+                    Pull from Cloud
+                  </button>
+                  <button class="btn-secondary btn-sm" id="syncPushBtn">
+                    Push Local to Cloud
+                  </button>
+                </div>
+                <div class="mt-6 small muted" id="cloudStatusDetail">
+                  Cloud not configured yet. App is operating in local-only mode.
+                </div>
+                <div class="divider mt-6"></div>
+                <div class="mt-6">
+                  <div class="small muted">
+                    <strong>Test Mode:</strong> Authentication is bypassed. Role is simulated via the sidebar selector. Future auth patch can be plugged into the block below without rewriting the app.
+                  </div>
+                  <pre class="small muted mt-4" style="background:#05060a;border-radius:6px;padding:6px 8px;overflow:auto;">
+// FUTURE AUTH PATCH AREA
+// - Replace test-mode role picker with real login
+// - Use gx_users (user_id, role, password_hash, password_salt)
+// - Ensure role-based visibility logic reuses existing role checks
+                  </pre>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    // =========================
+    // CONFIG BLOCK
+    // =========================
+    const GX_CONFIG = {
+      appName: "GXPULSE",
+      version: "0.1.0",
+      buildTimestamp: new Date().toISOString(),
+      testMode: true, // TEST MODE ENABLED BY DEFAULT
+      supabase: {
+        enabled: false, // set to true when Supabase URL/key are configured
+        url: "",        // e.g. "https://xyzcompany.supabase.co"
+        anonKey: ""     // e.g. "public-anon-key"
+      },
+      localStorageKeys: {
+        entries: "gx_entries",
+        markets: "gx_markets",
+        commodities: "gx_commodities",
+        users: "gx_users",
+        role: "gx_role",
+        testMode: "gx_test_mode"
+      }
+    };
+
+    // =========================
+    // STATE
+    // =========================
+    const GX_STATE = {
+      role: "admin",
+      markets: [],
+      commodities: [],
+      users: [],
+      entries: [],
+      charts: {
+        dashboardPie: null,
+        dashboardLine: null,
+        trendLatest: null,
+        trendTime: null,
+        compare: null
+      },
+      cloudOnline: false
+    };
+
+    // =========================
+    // UTILITIES
+    // =========================
+    function safeParseJSON(str, fallback) {
+      try {
+        if (!str) return fallback;
+        return JSON.parse(str);
+      } catch (e) {
+        console.warn("JSON parse error:", e);
+        return fallback;
+      }
+    }
+
+    function saveToLocalStorage(key, value) {
+      try {
+        localStorage.setItem(key, JSON.stringify(value));
+      } catch (e) {
+        console.warn("LocalStorage save error:", e);
+      }
+    }
+
+    function loadFromLocalStorage(key, fallback) {
+      try {
+        const raw = localStorage.getItem(key);
+        return safeParseJSON(raw, fallback);
+      } catch (e) {
+        console.warn("LocalStorage load error:", e);
+        return fallback;
+      }
+    }
+
+    function formatDate(dateStr) {
+      if (!dateStr) return "";
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return dateStr;
+      return d.toISOString().slice(0, 10);
+    }
+
+    function formatNumber(num, decimals = 0) {
+      if (num === null || num === undefined || isNaN(num)) return "";
+      return Number(num).toLocaleString("en-NG", {
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals
+      });
+    }
+
+    function computeDelta(current, prev) {
+      if (prev === null || prev === undefined || isNaN(prev)) return { delta: null, direction: "none" };
+      const delta = current - prev;
+      if (delta > 0) return { delta, direction: "up" };
+      if (delta < 0) return { delta, direction: "down" };
+      return { delta: 0, direction: "flat" };
+    }
+
+    function daysAgo(days) {
+      const d = new Date();
+      d.setDate(d.getDate() - days);
+      return d;
+    }
+
+    function filterByDateRange(entries, fromDate, toDate) {
+      if (!entries || !entries.length) return [];
+      const from = fromDate ? new Date(fromDate) : null;
+      const to = toDate ? new Date(toDate) : null;
+      return entries.filter(e => {
+        const d = new Date(e.date);
+        if (isNaN(d.getTime())) return false;
+        if (from && d < from) return false;
+        if (to && d > to) return false;
+        return true;
+      });
+    }
+
+    function getQuickRangeDates(rangeKey) {
+      const now = new Date();
+      let from = null;
+      let to = now;
+      switch (rangeKey) {
+        case "7d":
+          from = daysAgo(7);
+          break;
+        case "30d":
+          from = daysAgo(30);
+          break;
+        case "90d":
+          from = daysAgo(90);
+          break;
+        case "ytd":
+          from = new Date(now.getFullYear(), 0, 1);
+          break;
+        case "all":
+          from = null;
+          break;
+        default:
+          from = null;
+      }
+      return {
+        from: from ? from.toISOString().slice(0, 10) : "",
+        to: to.toISOString().slice(0, 10)
+      };
+    }
+
+    function destroyChart(chartRefName) {
+      const chart = GX_STATE.charts[chartRefName];
+      if (chart && typeof chart.destroy === "function") {
+        try {
+          chart.destroy();
+        } catch (e) {
+          console.warn("Chart destroy error:", e);
+        }
+      }
+      GX_STATE.charts[chartRefName] = null;
+    }
+
+    function safeCreateChart(chartRefName, ctx, config) {
+      destroyChart(chartRefName);
+      try {
+        GX_STATE.charts[chartRefName] = new Chart(ctx, config);
+      } catch (e) {
+        console.error("Chart render error:", e);
+        GX_STATE.charts[chartRefName] = null;
+      }
+    }
+
+    function groupBy(arr, keyFn) {
+      const map = new Map();
+      for (const item of arr) {
+        const key = keyFn(item);
+        if (!map.has(key)) map.set(key, []);
+        map.get(key).push(item);
+      }
+      return map;
+    }
+
+    function getLatestEntriesPerCommodity(entries) {
+      const map = new Map();
+      for (const e of entries) {
+        const key = e.commodity_id;
+        const existing = map.get(key);
+        if (!existing || new Date(e.date) > new Date(existing.date)) {
+          map.set(key, e);
+        }
+      }
+      return Array.from(map.values());
+    }
+
+    function getLatestEntriesPerMarketForCommodity(entries, commodityId) {
+      const filtered = entries.filter(e => e.commodity_id === commodityId);
+      const map = new Map();
+      for (const e of filtered) {
+        const key = e.market_id;
+        const existing = map.get(key);
+        if (!existing || new Date(e.date) > new Date(existing.date)) {
+          map.set(key, e);
+        }
+      }
+      return Array.from(map.values());
+    }
+
+    function computeEntriesPerDay(entries) {
+      const map = new Map();
+      for (const e of entries) {
+        const d = formatDate(e.date);
+        if (!d) continue;
+        map.set(d, (map.get(d) || 0) + 1);
+      }
+      const days = Array.from(map.keys()).sort();
+      return days.map(d => ({ date: d, count: map.get(d) }));
+    }
+
+    function computeMarketStatsForCommodity(entries, commodityId, fromDate, toDate) {
+      const filtered = entries.filter(e => e.commodity_id === commodityId);
+      const ranged = filterByDateRange(filtered, fromDate, toDate);
+      const grouped = groupBy(ranged, e => e.market_id);
+      const result = [];
+      for (const [marketId, list] of grouped.entries()) {
+        const prices = list.map(e => e.price).filter(p => typeof p === "number" && !isNaN(p));
+        if (!prices.length) continue;
+        const sum = prices.reduce((a, b) => a + b, 0);
+        const avg = sum / prices.length;
+        const min = Math.min(...prices);
+        const max = Math.max(...prices);
+        result.push({ market_id: marketId, avg, min, max, count: prices.length });
+      }
+      return result;
+    }
+
+    function computeArbitrageForCommodity(entries, commodityId, fromDate, toDate) {
+      const filtered = entries.filter(e => e.commodity_id === commodityId);
+      const ranged = filterByDateRange(filtered, fromDate, toDate);
+      const latestPerMarket = getLatestEntriesPerMarketForCommodity(ranged, commodityId);
+      if (latestPerMarket.length < 2) return [];
+      const sorted = latestPerMarket.slice().sort((a, b) => a.price - b.price);
+      const opportunities = [];
+      for (let i = 0; i < sorted.length; i++) {
+        for (let j = i + 1; j < sorted.length; j++) {
+          const buy = sorted[i];
+          const sell = sorted[j];
+          const spread = sell.price - buy.price;
+          if (spread > 0) {
+            opportunities.push({
+              commodity_id: commodityId,
+              buy,
+              sell,
+              spread
+            });
+          }
+        }
+      }
+      opportunities.sort((a, b) => b.spread - a.spread);
+      return opportunities;
+    }
+
+    function computeAverageSpread(entries) {
+      if (!entries.length) return 0;
+      const byCommodity = groupBy(entries, e => e.commodity_id);
+      let totalSpread = 0;
+      let count = 0;
+      for (const list of byCommodity.values()) {
+        const prices = list.map(e => e.price).filter(p => typeof p === "number" && !isNaN(p));
+        if (prices.length < 2) continue;
+        const min = Math.min(...prices);
+        const max = Math.max(...prices);
+        totalSpread += (max - min);
+        count++;
+      }
+      if (!count) return 0;
+      return totalSpread / count;
+    }
+
+    function normalizeEntry(raw) {
+      // Ensure consistent internal model: snake_case IDs, canonical fields
+      return {
+        entry_id: raw.entry_id || raw.id || `local_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+        date: raw.date || raw.created_at || new Date().toISOString().slice(0, 10),
+        timestamp_ms: raw.timestamp_ms || Date.now(),
+        market_id: raw.market_id,
+        market_name: raw.market_name,
+        commodity_id: raw.commodity_id,
+        commodity_name: raw.commodity_name,
+        unit: raw.unit || raw.unit_default || "",
+        price: typeof raw.price === "number" ? raw.price : Number(raw.price || 0),
+        prev_price: typeof raw.prev_price === "number" ? raw.prev_price : (raw.prev_price ? Number(raw.prev_price) : null),
+        user_id: raw.user_id || null,
+        source: raw.source || "local_seed",
+        cta_name: raw.cta_name || "",
+        cta_phone: raw.cta_phone || "",
+        mdc_name: raw.mdc_name || "",
+        mdc_phone: raw.mdc_phone || "",
+        remarks: raw.remarks || "",
+        created_at: raw.created_at || new Date().toISOString()
+      };
+    }
+
+    // =========================
+    // SEED DATA (MINIMAL, DEMO)
+    // =========================
+    function seedInitialDataIfEmpty() {
+      const ls = GX_CONFIG.localStorageKeys;
+
+      // Users
+      let users = loadFromLocalStorage(ls.users, null);
+      if (!users || !users.length) {
+        users = [
+          {
+            user_id: "u_admin",
+            full_name: "Test Admin",
+            role: "admin",
+            phone: "+2348000000001",
+            active: true,
+            created_at: new Date().toISOString()
+          },
+          {
+            user_id: "u_staff",
+            full_name: "Test Staff",
+            role: "staff",
+            phone: "+2348000000002",
+            active: true,
+            created_at: new Date().toISOString()
+          },
+          {
+            user_id: "u_merchant",
+            full_name: "Test Merchant",
+            role: "merchant",
+            phone: "+2348000000003",
+            active: true,
+            created_at: new Date().toISOString()
+          },
+          {
+            user_id: "u_analyst",
+            full_name: "Test Analyst",
+            role: "analyst",
+            phone: "+2348000000004",
+            active: true,
+            created_at: new Date().toISOString()
+          }
+        ];
+        saveToLocalStorage(ls.users, users);
+      }
+
+      // Markets
+      let markets = loadFromLocalStorage(ls.markets, null);
+      if (!markets || !markets.length) {
+        markets = [
+          {
+            market_id: "m7",
+            market_name: "Shibado",
+            state: "Bauchi",
+            country: "Nigeria",
+            active: true,
+            legacy_sheet: "m7",
+            created_at: new Date().toISOString()
+          },
+          {
+            market_id: "m8",
+            market_name: "Gezawa",
+            state: "Kano",
+            country: "Nigeria",
+            active: true,
+            legacy_sheet: "m8",
+            created_at: new Date().toISOString()
+          },
+          {
+            market_id: "m9",
+            market_name: "Saminaka",
+            state: "Kaduna",
+            country: "Nigeria",
+            active: true,
+            legacy_sheet: "m9",
+            created_at: new Date().toISOString()
+          }
+        ];
+        saveToLocalStorage(ls.markets, markets);
+      }
+
+      // Commodities
+      let commodities = loadFromLocalStorage(ls.commodities, null);
+      if (!commodities || !commodities.length) {
+        commodities = [
+          {
+            commodity_id: "c_885512393687",
+            commodity_name: "Maize (Old)",
+            canonical_key: "maize_old",
+            unit_default: "100kg bag",
+            active: true,
+            legacy_sheet: "Maize (Old)",
+            created_at: new Date().toISOString()
+          },
+          {
+            commodity_id: "c_96634bc552b8",
+            commodity_name: "Soy Beans (Old)",
+            canonical_key: "soybeans_old",
+            unit_default: "100kg bag",
+            active: true,
+            legacy_sheet: "Soy Beans (Old)",
+            created_at: new Date().toISOString()
+          },
+          {
+            commodity_id: "c_9b5a2c3ad7a4",
+            commodity_name: "Groundnut (Old)",
+            canonical_key: "groundnut_old",
+            unit_default: "100kg bag",
+            active: true,
+            legacy_sheet: "Groundnut (Old)",
+            created_at: new Date().toISOString()
+          },
+          {
+            commodity_id: "c_dac2564a9d41",
+            commodity_name: "Paddy Rice (Old)",
+            canonical_key: "paddy_rice_old",
+            unit_default: "100kg bag",
+            active: true,
+            legacy_sheet: "Paddy Rice (Old)",
+            created_at: new Date().toISOString()
+          },
+          {
+            commodity_id: "c_dd537960722d",
+            commodity_name: "Guinea Corn",
+            canonical_key: "guinea_corn",
+            unit_default: "100kg bag",
+            active: true,
+            legacy_sheet: "Guinea Corn",
+            created_at: new Date().toISOString()
+          }
+        ];
+        saveToLocalStorage(ls.commodities, commodities);
+      }
+
+      // Entries
+      let entries = loadFromLocalStorage(ls.entries, null);
+      if (!entries || !entries.length) {
+        const today = new Date();
+        const iso = (d) => d.toISOString().slice(0, 10);
+        const d1 = new Date(today); d1.setDate(today.getDate() - 3);
+        const d2 = new Date(today); d2.setDate(today.getDate() - 2);
+        const d3 = new Date(today); d3.setDate(today.getDate() - 1);
+
+        const seed = [
+          {
+            entry_id: "e_seed_1",
+            date: iso(d1),
+            timestamp_ms: d1.getTime(),
+            market_id: "m7",
+            market_name: "Shibado",
+            commodity_id: "c_885512393687",
+            commodity_name: "Maize (Old)",
+            unit: "100kg bag",
+            price: 32000,
+            prev_price: 31000,
+            user_id: "u_staff",
+            source: "local_seed",
+            cta_name: "",
+            cta_phone: "",
+            mdc_name: "",
+            mdc_phone: "",
+            remarks: "Seeded entry",
+            created_at: d1.toISOString()
+          },
+          {
+            entry_id: "e_seed_2",
+            date: iso(d2),
+            timestamp_ms: d2.getTime(),
+            market_id: "m8",
+            market_name: "Gezawa",
+            commodity_id: "c_885512393687",
+            commodity_name: "Maize (Old)",
+            unit: "100kg bag",
+            price: 34000,
+            prev_price: 32000,
+            user_id: "u_staff",
+            source: "local_seed",
+            cta_name: "",
+            cta_phone: "",
+            mdc_name: "",
+            mdc_phone: "",
+            remarks: "Seeded entry",
+            created_at: d2.toISOString()
+          },
+          {
+            entry_id: "e_seed_3",
+            date: iso(d3),
+            timestamp_ms: d3.getTime(),
+            market_id: "m9",
+            market_name: "Saminaka",
+            commodity_id: "c_885512393687",
+            commodity_name: "Maize (Old)",
+            unit: "100kg bag",
+            price: 33000,
+            prev_price: 34000,
+            user_id: "u_staff",
+            source: "local_seed",
+            cta_name: "",
+            cta_phone: "",
+            mdc_name: "",
+            mdc_phone: "",
+            remarks: "Seeded entry",
+            created_at: d3.toISOString()
+          },
+          {
+            entry_id: "e_seed_4",
+            date: iso(d3),
+            timestamp_ms: d3.getTime(),
+            market_id: "m7",
+            market_name: "Shibado",
+            commodity_id: "c_9b5a2c3ad7a4",
+            commodity_name: "Groundnut (Old)",
+            unit: "100kg bag",
+            price: 116000,
+            prev_price: 108000,
+            user_id: "u_admin",
+            source: "local_seed",
+            cta_name: "",
+            cta_phone: "",
+            mdc_name: "",
+            mdc_phone: "",
+            remarks: "Seeded entry",
+            created_at: d3.toISOString()
+          }
+        ];
+        entries = seed.map(normalizeEntry);
+        saveToLocalStorage(ls.entries, entries);
+      }
+    }
+
+    // =========================
+    // LOAD STATE FROM LOCAL
+    // =========================
+    function loadStateFromLocal() {
+      const ls = GX_CONFIG.localStorageKeys;
+      GX_STATE.markets = loadFromLocalStorage(ls.markets, []);
+      GX_STATE.commodities = loadFromLocalStorage(ls.commodities, []);
+      GX_STATE.users = loadFromLocalStorage(ls.users, []);
+      GX_STATE.entries = loadFromLocalStorage(ls.entries, []).map(normalizeEntry);
+
+      const storedRole = localStorage.getItem(ls.role);
+      if (storedRole) {
+        GX_STATE.role = storedRole;
+      } else {
+        GX_STATE.role = "admin";
+      }
+
+      const storedTestMode = localStorage.getItem(ls.testMode);
+      if (storedTestMode !== null) {
+        GX_CONFIG.testMode = storedTestMode === "true";
+      }
+    }
+
+    // =========================
+    // DOM BINDING & ROLE LOGIC
+    // =========================
+    function initRoleSelector() {
+      const roleSelect = document.getElementById("roleSelect");
+      const roleLabel = document.getElementById("roleLabel");
+      if (!roleSelect || !roleLabel) return;
+
+      roleSelect.value = GX_STATE.role;
+      roleLabel.textContent = GX_STATE.role.charAt(0).toUpperCase() + GX_STATE.role.slice(1);
+
+      roleSelect.addEventListener("change", () => {
+        GX_STATE.role = roleSelect.value;
+        localStorage.setItem(GX_CONFIG.localStorageKeys.role, GX_STATE.role);
+        roleLabel.textContent = GX_STATE.role.charAt(0).toUpperCase() + GX_STATE.role.slice(1);
+        applyRoleVisibility();
+      });
+
+      applyRoleVisibility();
+    }
+
+    function applyRoleVisibility() {
+      const quickEntryCard = document.getElementById("quickEntryCard");
+      const adminPage = document.getElementById("page-admin");
+      const role = GX_STATE.role;
+
+      // Quick Price Entry: Admin + Staff only
+      if (quickEntryCard) {
+        if (role === "admin" || role === "staff") {
+          quickEntryCard.style.display = "";
+        } else {
+          quickEntryCard.style.display = "none";
+        }
+      }
+
+      // Admin page: Admin only
+      if (adminPage) {
+        const adminMenuItem = document.querySelector('.menu-item[data-page="admin"]');
+        if (role === "admin") {
+          if (adminMenuItem) adminMenuItem.style.display = "";
+        } else {
+          if (adminMenuItem) adminMenuItem.style.display = "none";
+          if (adminPage.classList.contains("active")) {
+            switchPage("dashboard");
+          }
+        }
+      }
+    }
+
+    // =========================
+    // NAVIGATION
+    // =========================
+    function switchPage(pageKey) {
+      const pages = document.querySelectorAll(".page");
+      pages.forEach(p => {
+        if (p.id === `page-${pageKey}`) {
+          p.classList.add("active");
+        } else {
+          p.classList.remove("active");
+        }
+      });
+
+      const menuItems = document.querySelectorAll(".menu-item");
+      menuItems.forEach(mi => {
+        if (mi.getAttribute("data-page") === pageKey) {
+          mi.classList.add("active");
+        } else {
+          mi.classList.remove("active");
+        }
+      });
+
+      const label = document.getElementById("currentPageLabel");
+      if (label) {
+        switch (pageKey) {
+          case "dashboard":
+            label.textContent = "Dashboard overview";
+            break;
+          case "reports":
+            label.textContent = "Reports and tabular analytics";
+            break;
+          case "trends":
+            label.textContent = "Trend charts and latest price across markets";
+            break;
+          case "compare":
+            label.textContent = "Market comparison for selected commodities";
+            break;
+          case "arbitrage":
+            label.textContent = "Arbitrage spread opportunities";
+            break;
+          case "admin":
+            label.textContent = "Admin configuration and cloud sync";
+            break;
+          default:
+            label.textContent = "";
+        }
+      }
+    }
+
+    function initNavigation() {
+      const menuItems = document.querySelectorAll(".menu-item");
+      menuItems.forEach(mi => {
+        mi.addEventListener("click", () => {
+          const pageKey = mi.getAttribute("data-page");
+          if (pageKey === "admin" && GX_STATE.role !== "admin") {
+            return;
+          }
+          switchPage(pageKey);
+          if (window.innerWidth <= 900) {
+            toggleSidebar(false);
+          }
+        });
+      });
+    }
+
+    function toggleSidebar(forceOpen) {
+      const sidebar = document.getElementById("sidebar");
+      if (!sidebar) return;
+      const open = typeof forceOpen === "boolean" ? forceOpen : !sidebar.classList.contains("open");
+      if (open) {
+        sidebar.classList.add("open");
+      } else {
+        sidebar.classList.remove("open");
+      }
+    }
+
+    function initHamburger() {
+      const btn = document.getElementById("hamburgerBtn");
+      if (!btn) return;
+      btn.addEventListener("click", () => toggleSidebar());
+    }
+
+    // =========================
+    // DASHBOARD RENDERING
+    // =========================
+    function renderDashboardKPIs() {
+      const marketsSet = new Set(GX_STATE.entries.map(e => e.market_id));
+      const commoditiesSet = new Set(GX_STATE.entries.map(e => e.commodity_id));
+      const last7 = filterByDateRange(GX_STATE.entries, daysAgo(7).toISOString().slice(0, 10), new Date().toISOString().slice(0, 10));
+      const avgSpread = computeAverageSpread(GX_STATE.entries);
+
+      const kpiMarkets = document.getElementById("kpiMarkets");
+      const kpiCommodities = document.getElementById("kpiCommodities");
+      const kpiEntries7d = document.getElementById("kpiEntries7d");
+      const kpiSpread = document.getElementById("kpiSpread");
+
+      if (kpiMarkets) kpiMarkets.textContent = marketsSet.size;
+      if (kpiCommodities) kpiCommodities.textContent = commoditiesSet.size;
+      if (kpiEntries7d) kpiEntries7d.textContent = last7.length;
+      if (kpiSpread) kpiSpread.textContent = formatNumber(avgSpread, 0);
+    }
+
+    function renderDashboardPieChart() {
+      const container = document.getElementById("dashboardPieChart");
+      const placeholder = document.getElementById("dashboardPiePlaceholder");
+      if (!container || !container.getContext) return;
+
+      const latestPerCommodity = getLatestEntriesPerCommodity(GX_STATE.entries);
+      if (!latestPerCommodity.length) {
+        if (placeholder) placeholder.style.display = "flex";
+        container.style.display = "none";
+        destroyChart("dashboardPie");
+        return;
+      }
+
+      if (placeholder) placeholder.style.display = "none";
+      container.style.display = "block";
+
+      const labels = latestPerCommodity.map(e => e.commodity_name);
+      const data = latestPerCommodity.map(e => e.price);
+
+      const ctx = container.getContext("2d");
+      safeCreateChart("dashboardPie", ctx, {
+        type: "pie",
+        data: {
+          labels,
+          datasets: [{
+            data,
+            backgroundColor: [
+              "#00d1b2",
+              "#00f5c4",
+              "#ff9f43",
+              "#ff6b6b",
+              "#54a0ff",
+              "#5f27cd"
+            ],
+            borderColor: "#05060a",
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              labels: {
+                color: "#f5f7fb",
+                font: { size: 11 }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function renderDashboardLineChart() {
+      const container = document.getElementById("dashboardLineChart");
+      const placeholder = document.getElementById("dashboardLinePlaceholder");
+      if (!container || !container.getContext) return;
+
+      const last30 = filterByDateRange(GX_STATE.entries, daysAgo(30).toISOString().slice(0, 10), new Date().toISOString().slice(0, 10));
+      const perDay = computeEntriesPerDay(last30);
+      if (!perDay.length) {
+        if (placeholder) placeholder.style.display = "flex";
+        container.style.display = "none";
+        destroyChart("dashboardLine");
+        return;
+      }
+
+      if (placeholder) placeholder.style.display = "none";
+      container.style.display = "block";
+
+      const labels = perDay.map(d => d.date);
+      const data = perDay.map(d => d.count);
+
+      const ctx = container.getContext("2d");
+      safeCreateChart("dashboardLine", ctx, {
+        type: "line",
+        data: {
+          labels,
+          datasets: [{
+            label: "Entries",
+            data,
+            borderColor: "#00d1b2",
+            backgroundColor: "rgba(0, 209, 178, 0.2)",
+            tension: 0.25,
+            fill: true,
+            pointRadius: 2,
+            pointBackgroundColor: "#00f5c4"
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: {
+              ticks: { color: "#a0a4b8", font: { size: 10 } },
+              grid: { color: "rgba(255,255,255,0.05)" }
+            },
+            y: {
+              ticks: { color: "#a0a4b8", font: { size: 10 } },
+              grid: { color: "rgba(255,255,255,0.05)" }
+            }
+          },
+          plugins: {
+            legend: {
+              labels: {
+                color: "#f5f7fb",
+                font: { size: 11 }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function renderDashboardLatestActivity() {
+      const tbody = document.getElementById("latestActivityTableBody");
+      const empty = document.getElementById("latestActivityEmpty");
+      if (!tbody) return;
+
+      tbody.innerHTML = "";
+      const sorted = GX_STATE.entries.slice().sort((a, b) => new Date(b.date) - new Date(a.date));
+      const latest = sorted.slice(0, 15);
+
+      if (!latest.length) {
+        if (empty) empty.style.display = "block";
+        return;
+      }
+      if (empty) empty.style.display = "none";
+
+      for (const e of latest) {
+        const { delta, direction } = computeDelta(e.price, e.prev_price);
+        const tr = document.createElement("tr");
+        const deltaText = delta === null ? "" : (delta > 0 ? `+${formatNumber(delta)}` : formatNumber(delta));
+        let deltaClass = "";
+        if (direction === "up") deltaClass = "text-danger";
+        if (direction === "down") deltaClass = "text-accent";
+
+        tr.innerHTML = `
+          <td>${formatDate(e.date)}</td>
+          <td>${e.market_name || ""}</td>
+          <td>${e.commodity_name || ""}</td>
+          <td class="text-right">${formatNumber(e.price)}</td>
+          <td class="text-right">${e.prev_price != null ? formatNumber(e.prev_price) : ""}</td>
+          <td class="text-right ${deltaClass}">${deltaText}</td>
+          <td>${e.source || ""}</td>
+        `;
+        tbody.appendChild(tr);
+      }
+    }
+
+    function renderDashboard() {
+      renderDashboardKPIs();
+      renderDashboardPieChart();
+      renderDashboardLineChart();
+      renderDashboardLatestActivity();
+    }
+
+    // =========================
+    // QUICK PRICE ENTRY
+    // =========================
+    function initQuickEntry() {
+      const form = document.getElementById("quickEntryForm");
+      const marketSelect = document.getElementById("qeMarket");
+      const commoditySelect = document.getElementById("qeCommodity");
+      const statusEl = document.getElementById("quickEntryStatus");
+      const dateInput = document.getElementById("qeDate");
+
+      if (!form || !marketSelect || !commoditySelect) return;
+
+      // Populate selects
+      marketSelect.innerHTML = "";
+      GX_STATE.markets.forEach(m => {
+        const opt = document.createElement("option");
+        opt.value = m.market_id;
+        opt.textContent = m.market_name;
+        marketSelect.appendChild(opt);
+      });
+
+      commoditySelect.innerHTML = "";
+      GX_STATE.commodities.forEach(c => {
+        const opt = document.createElement("option");
+        opt.value = c.commodity_id;
+        opt.textContent = c.commodity_name;
+        commoditySelect.appendChild(opt);
+      });
+
+      // Default date = today
+      if (dateInput) {
+        dateInput.value = new Date().toISOString().slice(0, 10);
+      }
+
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        if (GX_STATE.role !== "admin" && GX_STATE.role !== "staff") {
+          if (statusEl) statusEl.textContent = "Current role cannot submit entries.";
+          return;
+        }
+
+        const marketId = marketSelect.value;
+        const commodityId = commoditySelect.value;
+        const price = Number(document.getElementById("qePrice").value || 0);
+        const unit = document.getElementById("qeUnit").value || "";
+        const date = document.getElementById("qeDate").value || new Date().toISOString().slice(0, 10);
+        const remarks = document.getElementById("qeRemarks").value || "";
+
+        if (!marketId || !commodityId || !price) {
+          if (statusEl) statusEl.textContent = "Please fill required fields.";
+          return;
+        }
+
+        const market = GX_STATE.markets.find(m => m.market_id === marketId);
+        const commodity = GX_STATE.commodities.find(c => c.commodity_id === commodityId);
+
+        const lastEntry = GX_STATE.entries
+          .filter(e => e.market_id === marketId && e.commodity_id === commodityId)
+          .sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+
+        const newEntry = normalizeEntry({
+          entry_id: `local_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+          date,
+          timestamp_ms: Date.now(),
+          market_id: marketId,
+          market_name: market ? market.market_name : "",
+          commodity_id: commodityId,
+          commodity_name: commodity ? commodity.commodity_name : "",
+          unit: unit || (commodity ? commodity.unit_default : ""),
+          price,
+          prev_price: lastEntry ? lastEntry.price : null,
+          user_id: GX_STATE.role === "admin" ? "u_admin" : "u_staff",
+          source: "quick_entry",
+          remarks,
+          created_at: new Date().toISOString()
+        });
+
+        GX_STATE.entries.push(newEntry);
+        saveToLocalStorage(GX_CONFIG.localStorageKeys.entries, GX_STATE.entries);
+
+        if (statusEl) statusEl.textContent = "Entry saved locally. Cloud sync can be enabled later.";
+        renderDashboard();
+        renderReports();
+        renderTrends();
+        renderCompare();
+        renderArbitrage();
+      });
+    }
+
+    // =========================
+    // REPORTS RENDERING
+    // =========================
+    function initReportsFilters() {
+      const marketSelect = document.getElementById("reportMarket");
+      const commoditySelect = document.getElementById("reportCommodity");
+      const userSelect = document.getElementById("reportUser");
+      const rangeSelect = document.getElementById("reportDateRange");
+      const fromInput = document.getElementById("reportDateFrom");
+      const toInput = document.getElementById("reportDateTo");
+      const applyBtn = document.getElementById("reportApplyBtn");
+
+      if (!marketSelect || !commoditySelect || !userSelect || !rangeSelect || !applyBtn) return;
+
+      // Populate markets
+      GX_STATE.markets.forEach(m => {
+        const opt = document.createElement("option");
+        opt.value = m.market_id;
+        opt.textContent = m.market_name;
+        marketSelect.appendChild(opt);
+      });
+
+      // Populate commodities
+      GX_STATE.commodities.forEach(c => {
+        const opt = document.createElement("option");
+        opt.value = c.commodity_id;
+        opt.textContent = c.commodity_name;
+        commoditySelect.appendChild(opt);
+      });
+
+      // Populate users
+      GX_STATE.users.forEach(u => {
+        const opt = document.createElement("option");
+        opt.value = u.user_id;
+        opt.textContent = `${u.full_name} (${u.role})`;
+        userSelect.appendChild(opt);
+      });
+
+      // Default range
+      const { from, to } = getQuickRangeDates("7d");
+      if (fromInput) fromInput.value = from;
+      if (toInput) toInput.value = to;
+
+      rangeSelect.addEventListener("change", () => {
+        if (rangeSelect.value === "custom") return;
+        const { from, to } = getQuickRangeDates(rangeSelect.value);
+        if (fromInput) fromInput.value = from;
+        if (toInput) toInput.value = to;
+      });
+
+      applyBtn.addEventListener("click", () => {
+        renderReports();
+      });
+    }
+
+    function renderReports() {
+      const marketSelect = document.getElementById("reportMarket");
+      const commoditySelect = document.getElementById("reportCommodity");
+      const userSelect = document.getElementById("reportUser");
+      const fromInput = document.getElementById("reportDateFrom");
+      const toInput = document.getElementById("reportDateTo");
+      const tbody = document.getElementById("reportsTableBody");
+      const empty = document.getElementById("reportsEmpty");
+      const countBadge = document.getElementById("reportCountBadge");
+
+      if (!tbody) return;
+
+      const marketId = marketSelect ? marketSelect.value : "";
+      const commodityId = commoditySelect ? commoditySelect.value : "";
+      const userId = userSelect ? userSelect.value : "";
+      const fromDate = fromInput ? fromInput.value : "";
+      const toDate = toInput ? toInput.value : "";
+
+      let filtered = GX_STATE.entries.slice();
+      if (marketId) filtered = filtered.filter(e => e.market_id === marketId);
+      if (commodityId) filtered = filtered.filter(e => e.commodity_id === commodityId);
+      if (userId) filtered = filtered.filter(e => e.user_id === userId);
+      filtered = filterByDateRange(filtered, fromDate || null, toDate || null);
+      filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+      tbody.innerHTML = "";
+      if (!filtered.length) {
+        if (empty) empty.style.display = "block";
+        if (countBadge) countBadge.textContent = "0 rows";
+        return;
+      }
+      if (empty) empty.style.display = "none";
+      if (countBadge) countBadge.textContent = `${filtered.length} rows`;
+
+      for (const e of filtered) {
+        const { delta, direction } = computeDelta(e.price, e.prev_price);
+        const deltaText = delta === null ? "" : (delta > 0 ? `+${formatNumber(delta)}` : formatNumber(delta));
+        let deltaClass = "";
+        if (direction === "up") deltaClass = "text-danger";
+        if (direction === "down") deltaClass = "text-accent";
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${formatDate(e.date)}</td>
+          <td>${e.market_name || ""}</td>
+          <td>${e.commodity_name || ""}</td>
+          <td>${e.unit || ""}</td>
+          <td class="text-right">${formatNumber(e.price)}</td>
+          <td class="text-right">${e.prev_price != null ? formatNumber(e.prev_price) : ""}</td>
+          <td class="text-right ${deltaClass}">${deltaText}</td>
+          <td>${(GX_STATE.users.find(u => u.user_id === e.user_id) || {}).full_name || ""}</td>
+          <td>${e.source || ""}</td>
+        `;
+        tbody.appendChild(tr);
+      }
+    }
+
+    // =========================
+    // TREND CHARTS RENDERING
+    // =========================
+    function initTrendsFilters() {
+      const commoditySelect = document.getElementById("trendCommodity");
+      const marketSelect = document.getElementById("trendMarket");
+      const commoditySelect2 = document.getElementById("trendCommodity2");
+
+      if (!commoditySelect || !marketSelect || !commoditySelect2) return;
+
+      commoditySelect.innerHTML = "";
+      commoditySelect2.innerHTML = "";
+      GX_STATE.commodities.forEach(c => {
+        const opt1 = document.createElement("option");
+        opt1.value = c.commodity_id;
+        opt1.textContent = c.commodity_name;
+        commoditySelect.appendChild(opt1);
+
+        const opt2 = document.createElement("option");
+        opt2.value = c.commodity_id;
+        opt2.textContent = c.commodity_name;
+        commoditySelect2.appendChild(opt2);
+      });
+
+      marketSelect.innerHTML = "";
+      GX_STATE.markets.forEach(m => {
+        const opt = document.createElement("option");
+        opt.value = m.market_id;
+        opt.textContent = m.market_name;
+        marketSelect.appendChild(opt);
+      });
+
+      if (commoditySelect.value) {
+        renderTrendLatestChart();
+      }
+      if (marketSelect.value && commoditySelect2.value) {
+        renderTrendTimeChart();
+      }
+
+      commoditySelect.addEventListener("change", renderTrendLatestChart);
+      marketSelect.addEventListener("change", renderTrendTimeChart);
+      commoditySelect2.addEventListener("change", renderTrendTimeChart);
+    }
+
+    function renderTrendLatestChart() {
+      const commoditySelect = document.getElementById("trendCommodity");
+      const container = document.getElementById("trendLatestChart");
+      const placeholder = document.getElementById("trendLatestPlaceholder");
+      const tableBody = document.getElementById("trendTableBody");
+      const tableEmpty = document.getElementById("trendTableEmpty");
+
+      if (!commoditySelect || !container || !container.getContext) return;
+
+      const commodityId = commoditySelect.value;
+      if (!commodityId) {
+        if (placeholder) placeholder.style.display = "flex";
+        container.style.display = "none";
+        destroyChart("trendLatest");
+        if (tableBody) tableBody.innerHTML = "";
+        if (tableEmpty) tableEmpty.style.display = "block";
+        return;
+      }
+
+      const latestPerMarket = getLatestEntriesPerMarketForCommodity(GX_STATE.entries, commodityId);
+      if (!latestPerMarket.length) {
+        if (placeholder) placeholder.style.display = "flex";
+        container.style.display = "none";
+        destroyChart("trendLatest");
+        if (tableBody) tableBody.innerHTML = "";
+        if (tableEmpty) tableEmpty.style.display = "block";
+        return;
+      }
+
+      if (placeholder) placeholder.style.display = "none";
+      container.style.display = "block";
+
+      const labels = latestPerMarket.map(e => e.market_name);
+      const data = latestPerMarket.map(e => e.price);
+
+      const ctx = container.getContext("2d");
+      safeCreateChart("trendLatest", ctx, {
+        type: "bar",
+        data: {
+          labels,
+          datasets: [{
+            label: "Latest Price (₦)",
+            data,
+            backgroundColor: "rgba(0, 209, 178, 0.6)",
+            borderColor: "#00f5c4",
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: {
+              ticks: { color: "#a0a4b8", font: { size: 10 } },
+              grid: { display: false }
+            },
+            y: {
+              ticks: { color: "#a0a4b8", font: { size: 10 } },
+              grid: { color: "rgba(255,255,255,0.05)" }
+            }
+          },
+          plugins: {
+            legend: {
+              labels: {
+                color: "#f5f7fb",
+                font: { size: 11 }
+              }
+            }
+          }
+        }
+      });
+
+      // Table below
+      if (tableBody) {
+        tableBody.innerHTML = "";
+        latestPerMarket
+          .sort((a, b) => new Date(b.date) - new Date(a.date))
+          .forEach(e => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+              <td>${formatDate(e.date)}</td>
+              <td>${e.market_name || ""}</td>
+              <td>${e.commodity_name || ""}</td>
+              <td class="text-right">${formatNumber(e.price)}</td>
+            `;
+            tableBody.appendChild(tr);
+          });
+      }
+      if (tableEmpty) tableEmpty.style.display = "none";
+    }
+
+    function renderTrendTimeChart() {
+      const marketSelect = document.getElementById("trendMarket");
+      const commoditySelect2 = document.getElementById("trendCommodity2");
+      const container = document.getElementById("trendTimeChart");
+      const placeholder = document.getElementById("trendTimePlaceholder");
+
+      if (!marketSelect || !commoditySelect2 || !container || !container.getContext) return;
+
+      const marketId = marketSelect.value;
+      const commodityId = commoditySelect2.value;
+      if (!marketId || !commodityId) {
+        if (placeholder) placeholder.style.display = "flex";
+        container.style.display = "none";
+        destroyChart("trendTime");
+        return;
+      }
+
+      const filtered = GX_STATE.entries
+        .filter(e => e.market_id === marketId && e.commodity_id === commodityId)
+        .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+      if (filtered.length < 2) {
+        if (placeholder) placeholder.style.display = "flex";
+        container.style.display = "none";
+        destroyChart("trendTime");
+        return;
+      }
+
+      if (placeholder) placeholder.style.display = "none";
+      container.style.display = "block";
+
+      const labels = filtered.map(e => formatDate(e.date));
+      const data = filtered.map(e => e.price);
+
+      const ctx = container.getContext("2d");
+      safeCreateChart("trendTime", ctx, {
+        type: "line",
+        data: {
+          labels,
+          datasets: [{
+            label: "Price (₦)",
+            data,
+            borderColor: "#ff9f43",
+            backgroundColor: "rgba(255, 159, 67, 0.2)",
+            tension: 0.25,
+            fill: true,
+            pointRadius: 2,
+            pointBackgroundColor: "#ff9f43"
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: {
+              ticks: { color: "#a0a4b8", font: { size: 10 } },
+              grid: { color: "rgba(255,255,255,0.05)" }
+            },
+            y: {
+              ticks: { color: "#a0a4b8", font: { size: 10 } },
+              grid: { color: "rgba(255,255,255,0.05)" }
+            }
+          },
+          plugins: {
+            legend: {
+              labels: {
+                color: "#f5f7fb",
+                font: { size: 11 }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function renderTrends() {
+      renderTrendLatestChart();
+      renderTrendTimeChart();
+    }
+
+    // =========================
+    // MARKET COMPARE RENDERING
+    // =========================
+    function initCompareFilters() {
+      const commoditySelect = document.getElementById("compareCommodity");
+      const rangeSelect = document.getElementById("compareDateRange");
+      const fromInput = document.getElementById("compareDateFrom");
+      const toInput = document.getElementById("compareDateTo");
+      const applyBtn = document.getElementById("compareApplyBtn");
+
+      if (!commoditySelect || !rangeSelect || !fromInput || !toInput || !applyBtn) return;
+
+      commoditySelect.innerHTML = "";
+      GX_STATE.commodities.forEach(c => {
+        const opt = document.createElement("option");
+        opt.value = c.commodity_id;
+        opt.textContent = c.commodity_name;
+        commoditySelect.appendChild(opt);
+      });
+
+      const { from, to } = getQuickRangeDates("7d");
+      fromInput.value = from;
+      toInput.value = to;
+
+      rangeSelect.addEventListener("change", () => {
+        const { from, to } = getQuickRangeDates(rangeSelect.value);
+        fromInput.value = from;
+        toInput.value = to;
+      });
+
+      applyBtn.addEventListener("click", () => {
+        renderCompare();
+      });
+    }
+
+    function renderCompare() {
+      const commoditySelect = document.getElementById("compareCommodity");
+      const fromInput = document.getElementById("compareDateFrom");
+      const toInput = document.getElementById("compareDateTo");
+      const container = document.getElementById("compareChart");
+      const placeholder = document.getElementById("comparePlaceholder");
+      const tableBody = document.getElementById("compareTableBody");
+      const tableEmpty = document.getElementById("compareTableEmpty");
+      const countBadge = document.getElementById("compareCountBadge");
+      const messageBox = document.getElementById("compareMessageBox");
+
+      if (!commoditySelect || !container || !container.getContext || !tableBody) return;
+
+      const commodityId = commoditySelect.value;
+      const fromDate = fromInput.value || null;
+      const toDate = toInput.value || null;
+
+      if (!commodityId) {
+        if (placeholder) placeholder.style.display = "flex";
+        container.style.display = "none";
+        destroyChart("compare");
+        tableBody.innerHTML = "";
+        if (tableEmpty) tableEmpty.style.display = "block";
+        if (countBadge) countBadge.textContent = "0 rows";
+        if (messageBox) messageBox.style.display = "none";
+        return;
+      }
+
+      const stats = computeMarketStatsForCommodity(GX_STATE.entries, commodityId, fromDate, toDate);
+      tableBody.innerHTML = "";
+
+      if (!stats.length) {
+        if (placeholder) placeholder.style.display = "flex";
+        container.style.display = "none";
+        destroyChart("compare");
+        if (tableEmpty) tableEmpty.style.display = "block";
+        if (countBadge) countBadge.textContent = "0 rows";
+        if (messageBox) messageBox.style.display = "none";
+        return;
+      }
+
+      if (placeholder) placeholder.style.display = "none";
+      container.style.display = "block";
+      if (tableEmpty) tableEmpty.style.display = "none";
+      if (countBadge) countBadge.textContent = `${stats.length} rows`;
+
+      const labels = [];
+      const data = [];
+      stats.forEach(s => {
+        const market = GX_STATE.markets.find(m => m.market_id === s.market_id);
+        labels.push(market ? market.market_name : s.market_id);
+        data.push(s.avg);
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${market ? market.market_name : s.market_id}</td>
+          <td>${(GX_STATE.commodities.find(c => c.commodity_id === commodityId) || {}).commodity_name || ""}</td>
+          <td class="text-right">${formatNumber(s.avg)}</td>
+          <td class="text-right">${formatNumber(s.min)}</td>
+          <td class="text-right">${formatNumber(s.max)}</td>
+          <td class="text-right">${s.count}</td>
+        `;
+        tableBody.appendChild(tr);
+      });
+
+      const ctx = container.getContext("2d");
+      safeCreateChart("compare", ctx, {
+        type: "bar",
+        data: {
+          labels,
+          datasets: [{
+            label: "Avg Price (₦)",
+            data,
+            backgroundColor: "rgba(95, 39, 205, 0.6)",
+            borderColor: "#5f27cd",
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: {
+              ticks: { color: "#a0a4b8", font: { size: 10 } },
+              grid: { display: false }
+            },
+            y: {
+              ticks: { color: "#a0a4b8", font: { size: 10 } },
+              grid: { color: "rgba(255,255,255,0.05)" }
+            }
+          },
+          plugins: {
+            legend: {
+              labels: {
+                color: "#f5f7fb",
+                font: { size: 11 }
+              }
+            }
+          }
+        }
+      });
+
+      if (messageBox) {
+        if (stats.length < 2) {
+          messageBox.style.display = "block";
+        } else {
+          messageBox.style.display = "none";
+        }
+      }
+    }
+
+    // =========================
+    // ARBITRAGE RENDERING
+    // =========================
+    function initArbitrageFilters() {
+      const commoditySelect = document.getElementById("arbCommodity");
+      const rangeSelect = document.getElementById("arbDateRange");
+      const fromInput = document.getElementById("arbDateFrom");
+      const toInput = document.getElementById("arbDateTo");
+      const applyBtn = document.getElementById("arbApplyBtn");
+
+      if (!commoditySelect || !rangeSelect || !fromInput || !toInput || !applyBtn) return;
+
+      commoditySelect.innerHTML = "";
+      GX_STATE.commodities.forEach(c => {
+        const opt = document.createElement("option");
+        opt.value = c.commodity_id;
+        opt.textContent = c.commodity_name;
+        commoditySelect.appendChild(opt);
+      });
+
+      const { from, to } = getQuickRangeDates("7d");
+      fromInput.value = from;
+      toInput.value = to;
+
+      rangeSelect.addEventListener("change", () => {
+        const { from, to } = getQuickRangeDates(rangeSelect.value);
+        fromInput.value = from;
+        toInput.value = to;
+      });
+
+      applyBtn.addEventListener("click", () => {
+        renderArbitrage();
+      });
+    }
+
+    function renderArbitrage() {
+      const commoditySelect = document.getElementById("arbCommodity");
+      const fromInput = document.getElementById("arbDateFrom");
+      const toInput = document.getElementById("arbDateTo");
+      const tableBody = document.getElementById("arbTableBody");
+      const tableEmpty = document.getElementById("arbTableEmpty");
+      const countBadge = document.getElementById("arbCountBadge");
+      const messageBox = document.getElementById("arbMessageBox");
+
+      if (!commoditySelect || !tableBody) return;
+
+      const commodityId = commoditySelect.value;
+      const fromDate = fromInput.value || null;
+      const toDate = toInput.value || null;
+
+      tableBody.innerHTML = "";
+
+      if (!commodityId) {
+        if (tableEmpty) tableEmpty.style.display = "block";
+        if (countBadge) countBadge.textContent = "0 opportunities";
+        if (messageBox) messageBox.innerHTML = "<strong>Note:</strong> Select a commodity to compute spreads.";
+        return;
+      }
+
+      const opportunities = computeArbitrageForCommodity(GX_STATE.entries, commodityId, fromDate, toDate);
+      if (!opportunities.length) {
+        if (tableEmpty) tableEmpty.style.display = "block";
+        if (countBadge) countBadge.textContent = "0 opportunities";
+        if (messageBox) {
+          messageBox.classList.remove("error");
+          messageBox.innerHTML = "<strong>Note:</strong> No arbitrage opportunities detected for the selected filters.";
+        }
+        return;
+      }
+
+      if (tableEmpty) tableEmpty.style.display = "none";
+      if (countBadge) countBadge.textContent = `${opportunities.length} opportunities`;
+
+      const commodity = GX_STATE.commodities.find(c => c.commodity_id === commodityId);
+      const commodityName = commodity ? commodity.commodity_name : commodityId;
+
+      opportunities.slice(0, 20).forEach(o => {
+        const buyMarket = GX_STATE.markets.find(m => m.market_id === o.buy.market_id);
+        const sellMarket = GX_STATE.markets.find(m => m.market_id === o.sell.market_id);
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${commodityName}</td>
+          <td>${buyMarket ? buyMarket.market_name : o.buy.market_id}</td>
+          <td>${sellMarket ? sellMarket.market_name : o.sell.market_id}</td>
+          <td class="text-right">${formatNumber(o.buy.price)}</td>
+          <td class="text-right">${formatNumber(o.sell.price)}</td>
+          <td class="text-right text-accent">${formatNumber(o.spread)}</td>
+        `;
+        tableBody.appendChild(tr);
+      });
+
+      if (messageBox) {
+        messageBox.classList.remove("error");
+        messageBox.innerHTML = "<strong>Note:</strong> Spreads are indicative only. Logistics and liquidity must be considered before acting.";
+      }
+    }
+
+    // =========================
+    // ADMIN RENDERING
+    // =========================
+    function renderAdminUsers() {
+      const tbody = document.getElementById("adminUsersTableBody");
+      const empty = document.getElementById("adminUsersEmpty");
+      if (!tbody) return;
+
+      tbody.innerHTML = "";
+      if (!GX_STATE.users.length) {
+        if (empty) empty.style.display = "block";
+        return;
+      }
+      if (empty) empty.style.display = "none";
+
+      GX_STATE.users.forEach(u => {
+        const tr = document.createElement("tr");
+        const statusClass = u.active ? "status-pill-ok" : "status-pill-bad";
+        const statusText = u.active ? "Active" : "Inactive";
+        tr.innerHTML = `
+          <td>${u.full_name}</td>
+          <td>${u.role}</td>
+          <td>${u.phone || ""}</td>
+          <td><span class="status-pill ${statusClass}">${statusText}</span></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function renderAdminMarkets() {
+      const tbody = document.getElementById("adminMarketsTableBody");
+      const empty = document.getElementById("adminMarketsEmpty");
+      if (!tbody) return;
+
+      tbody.innerHTML = "";
+      if (!GX_STATE.markets.length) {
+        if (empty) empty.style.display = "block";
+        return;
+      }
+      if (empty) empty.style.display = "none";
+
+      GX_STATE.markets.forEach(m => {
+        const tr = document.createElement("tr");
+        const statusClass = m.active ? "status-pill-ok" : "status-pill-bad";
+        const statusText = m.active ? "Active" : "Inactive";
+        tr.innerHTML = `
+          <td>${m.market_name}</td>
+          <td>${m.state || ""}</td>
+          <td>${m.country || ""}</td>
+          <td><span class="status-pill ${statusClass}">${statusText}</span></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function renderAdminCommodities() {
+      const tbody = document.getElementById("adminCommoditiesTableBody");
+      const empty = document.getElementById("adminCommoditiesEmpty");
+      if (!tbody) return;
+
+      tbody.innerHTML = "";
+      if (!GX_STATE.commodities.length) {
+        if (empty) empty.style.display = "block";
+        return;
+      }
+      if (empty) empty.style.display = "none";
+
+      GX_STATE.commodities.forEach(c => {
+        const tr = document.createElement("tr");
+        const statusClass = c.active ? "status-pill-ok" : "status-pill-bad";
+        const statusText = c.active ? "Active" : "Inactive";
+        tr.innerHTML = `
+          <td>${c.commodity_name}</td>
+          <td>${c.canonical_key}</td>
+          <td>${c.unit_default || ""}</td>
+          <td><span class="status-pill ${statusClass}">${statusText}</span></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function renderAdmin() {
+      renderAdminUsers();
+      renderAdminMarkets();
+      renderAdminCommodities();
+    }
+
+    // =========================
+    // CLOUD / SUPABASE PLACEHOLDERS
+    // =========================
+    async function testCloudConnection() {
+      const statusDot = document.getElementById("cloudStatusDot");
+      const statusLabel = document.getElementById("cloudStatusLabel");
+      const statusText = document.getElementById("supabaseStatusText");
+      const detail = document.getElementById("cloudStatusDetail");
+
+      if (!GX_CONFIG.supabase.enabled || !GX_CONFIG.supabase.url || !GX_CONFIG.supabase.anonKey) {
+        GX_STATE.cloudOnline = false;
+        if (statusDot) statusDot.classList.add("offline");
+        if (statusLabel) statusLabel.textContent = "Offline";
+        if (statusText) statusText.textContent = "Local-only";
+        if (detail) detail.textContent = "Supabase not configured. App is running in local-only mode.";
+        return;
+      }
+
+      try {
+        // Placeholder: in a real deployment, call Supabase health endpoint or simple query
+        GX_STATE.cloudOnline = true;
+        if (statusDot) statusDot.classList.remove("offline");
+        if (statusLabel) statusLabel.textContent = "Online";
+        if (statusText) statusText.textContent = "Local + Cloud";
+        if (detail) detail.textContent = "Supabase configured. Cloud sync actions are ready to be wired.";
+      } catch (e) {
+        console.error("Cloud test error:", e);
+        GX_STATE.cloudOnline = false;
+        if (statusDot) statusDot.classList.add("offline");
+        if (statusLabel) statusLabel.textContent = "Offline";
+        if (statusText) statusText.textContent = "Local-only";
+        if (detail) detail.textContent = "Cloud test failed. App remains fully usable in local-only mode.";
+      }
+    }
+
+    async function syncPullFromCloud() {
+      const detail = document.getElementById("cloudStatusDetail");
+      if (!GX_CONFIG.supabase.enabled) {
+        if (detail) detail.textContent = "Cloud sync disabled. Configure Supabase to enable pull.";
+        return;
+      }
+      try {
+        // Placeholder: implement Supabase pull logic here
+        if (detail) detail.textContent = "Cloud pull simulated. No remote data fetched in test build.";
+      } catch (e) {
+        console.error("Cloud pull error:", e);
+        if (detail) detail.textContent = "Cloud pull failed. Local data remains intact.";
+      }
+    }
+
+    async function syncPushToCloud() {
+      const detail = document.getElementById("cloudStatusDetail");
+      if (!GX_CONFIG.supabase.enabled) {
+        if (detail) detail.textContent = "Cloud sync disabled. Configure Supabase to enable push.";
+        return;
+      }
+      try {
+        // Placeholder: implement Supabase push logic here
+        if (detail) detail.textContent = "Cloud push simulated. No remote writes performed in test build.";
+      } catch (e) {
+        console.error("Cloud push error:", e);
+        if (detail) detail.textContent = "Cloud push failed. Local data remains intact.";
+      }
+    }
+
+    function initCloudButtons() {
+      const testBtn = document.getElementById("testCloudPingBtn");
+      const pullBtn = document.getElementById("syncPullBtn");
+      const pushBtn = document.getElementById("syncPushBtn");
+
+      if (testBtn) testBtn.addEventListener("click", testCloudConnection);
+      if (pullBtn) pullBtn.addEventListener("click", syncPullFromCloud);
+      if (pushBtn) pushBtn.addEventListener("click", syncPushToCloud);
+    }
+
+    // =========================
+    // CLEAR CACHE
+    // =========================
+    function initClearCacheButton() {
+      const btn = document.getElementById("clearCacheBtn");
+      if (!btn) return;
+      btn.addEventListener("click", () => {
+        if (!confirm("Clear local cache and reset seed data?")) return;
+        Object.values(GX_CONFIG.localStorageKeys).forEach(key => {
+          try {
+            localStorage.removeItem(key);
+          } catch (e) {
+            console.warn("LocalStorage remove error:", e);
+          }
+        });
+        location.reload();
+      });
+    }
+
+    // =========================
+    // BOOT SEQUENCE
+    // =========================
+    function boot() {
+      // 1. Load config (already in GX_CONFIG)
+      // 2. Init local state (seed if needed)
+      seedInitialDataIfEmpty();
+      loadStateFromLocal();
+
+      // 3. Init Supabase (placeholder)
+      testCloudConnection();
+
+      // 4. Load seed/cache into UI
+      const versionBadge = document.getElementById("appVersionBadge");
+      const buildBadge = document.getElementById("buildTimestampBadge");
+      if (versionBadge) versionBadge.textContent = `v${GX_CONFIG.version}`;
+      if (buildBadge) buildBadge.textContent = `build-${GX_CONFIG.buildTimestamp.slice(0, 19).replace("T", " ")}`;
+
+      const testModeIndicator = document.getElementById("testModeIndicator");
+      if (testModeIndicator) {
+        testModeIndicator.textContent = GX_CONFIG.testMode
+          ? "TEST MODE: Enabled (no password required)"
+          : "TEST MODE: Disabled";
+      }
+
+      // 5. Build menus & role
+      initNavigation();
+      initHamburger();
+      initRoleSelector();
+
+      // 6. Initialize modules
+      initQuickEntry();
+      initReportsFilters();
+      initTrendsFilters();
+      initCompareFilters();
+      initArbitrageFilters();
+      initCloudButtons();
+      initClearCacheButton();
+
+      // 7. Render pages
+      renderDashboard();
+      renderReports();
+      renderTrends();
+      renderCompare();
+      renderArbitrage();
+      renderAdmin();
+
+      // Ensure dashboard is default
+      switchPage("dashboard");
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      try {
+        boot();
+      } catch (e) {
+        console.error("Boot error:", e);
+        alert("GXPULSE encountered an initialization error. Check console for details.");
+      }
+    });
+  </script>
+</body>
+</html>

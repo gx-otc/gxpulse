@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>GXPULSE | GX OTC Market Intelligence</title>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        }
+        body {
+            background: #0a0c10;
+            color: #eef2ff;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .app {
+            display: flex;
+            height: 100vh;
+            width: 100%;
+            position: relative;
+        }
+        .sidebar {
+            width: 280px;
+            background: #111317;
+            border-right: 1px solid #2a2e3a;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.2s ease;
+            z-index: 100;
+        }
+        .sidebar-header {
+            padding: 1.5rem 1.2rem;
+            border-bottom: 1px solid #2a2e3a;
+        }
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .logo-icon {
+            background: #2b5f3b;
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.4rem;
+        }
+        .logo-text h1 {
+            font-size: 1.4rem;
+            letter-spacing: -0.3px;
+        }
+        .logo-text p {
+            font-size: 0.7rem;
+            opacity: 0.7;
+        }
+        .nav-menu {
+            flex: 1;
+            padding: 1rem 0;
+        }
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 0.8rem 1.5rem;
+            margin: 0.2rem 0.8rem;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #b0b7c9;
+        }
+        .nav-item i {
+            width: 24px;
+            font-size: 1.2rem;
+        }
+        .nav-item span {
+            font-weight: 500;
+        }
+        .nav-item.active {
+            background: #2b5f3b;
+            color: white;
+        }
+        .nav-item:hover:not(.active) {
+            background: #1e2128;
+            color: #eef2ff;
+        }
+        .main {
+            flex: 1;
+            overflow-y: auto;
+            background: #0f1117;
+            padding: 1.5rem;
+        }
+        .mobile-header {
+            display: none;
+            justify-content: space-between;
+            align-items: center;
+            background: #111317;
+            padding: 1rem;
+            border-bottom: 1px solid #2a2e3a;
+            position: sticky;
+            top: 0;
+            z-index: 90;
+        }
+        .menu-toggle {
+            background: none;
+            border: none;
+            font-size: 1.6rem;
+            color: white;
+            cursor: pointer;
+        }
+        .card {
+            background: #14171f;
+            border-radius: 20px;
+            padding: 1.2rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid #252a36;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        }
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .kpi-card {
+            background: #1a1e28;
+            border-radius: 20px;
+            padding: 1rem;
+            text-align: center;
+        }
+        .kpi-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #4caf7f;
+        }
+        .charts-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .chart-container {
+            background: #14171f;
+            border-radius: 20px;
+            padding: 1rem;
+        }
+        canvas {
+            max-height: 280px;
+            width: 100%;
+        }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            overflow-x: auto;
+            display: block;
+        }
+        .data-table th, .data-table td {
+            text-align: left;
+            padding: 0.8rem 0.5rem;
+            border-bottom: 1px solid #2a2e3a;
+        }
+        input, select, button {
+            background: #1e212a;
+            border: 1px solid #323842;
+            padding: 8px 14px;
+            border-radius: 12px;
+            color: white;
+        }
+        button {
+            background: #2b5f3b;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: 0.2s;
+        }
+        button.danger {
+            background: #a12a2a;
+        }
+        .filter-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            align-items: center;
+        }
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                left: -280px;
+                height: 100%;
+                transition: left 0.2s;
+                z-index: 200;
+            }
+            .sidebar.open {
+                left: 0;
+            }
+            .mobile-header {
+                display: flex;
+            }
+            .main {
+                padding: 1rem;
+            }
+            .charts-row {
+                grid-template-columns: 1fr;
+            }
+            .kpi-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        .badge {
+            background: #2b5f3b;
+            padding: 4px 8px;
+            border-radius: 40px;
+            font-size: 0.7rem;
+        }
+        .role-hidden {
+            display: none !important;
+        }
+        .alert {
+            background: #1e2128;
+            padding: 0.8rem;
+            border-radius: 12px;
+            margin: 0.5rem 0;
+        }
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+<div class="mobile-header">
+    <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
+    <div class="logo-text"><strong>GXPULSE</strong></div>
+    <div id="mobileUserBadge"></div>
+</div>
+<div class="app">
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <div class="logo-icon">GX</div>
+                <div class="logo-text">
+                    <h1>GXPULSE</h1>
+                    <p>GX OTC Market Intelligence</p>
+                </div>
+            </div>
+        </div>
+        <div class="nav-menu" id="navMenu"></div>
+        <div style="padding: 1rem; border-top: 1px solid #2a2e3a; font-size: 0.8rem;">
+            <div id="userInfoSidebar"></div>
+            <button id="logoutBtn" class="danger" style="width:100%; margin-top:10px;">Logout</button>
+        </div>
+    </div>
+    <div class="main" id="mainContent">
+        <div id="pageContent">Loading GXPULSE...</div>
+    </div>
+</div>
+
+<script>
+    // ------------------------------- CONFIG ----------------------------------
+    const SUPABASE_URL = "https://vglnekxeyypojwulsaqt.supabase.co";      // replace with your actual URL
+    const SUPABASE_ANON_KEY = "sb_publishable_4Q6O8-pl_ILuWrVW-MMqMw_ErlN7QDj"; // replace with your anon key
+    const APP_VERSION = "v2.2.0";
+    let supabase;
+    let currentUser = null;
+    let activePage = "dashboard";
+    let chartInstances = {};
+
+    // Global data
+    let markets = [];
+    let commodities = [];
+    let entries = [];
+    let users = [];
+
+    // Helper: init supabase
+    function initSupabase() {
+        if (!supabase) {
+            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        }
+    }
+
+    // Fetch all data from Supabase
+    async function loadDataFromCloud() {
+        initSupabase();
+        try {
+            const [marketsRes, commoditiesRes, entriesRes, usersRes] = await Promise.all([
+                supabase.from('gx_markets').select('*'),
+                supabase.from('gx_commodities').select('*'),
+                supabase.from('gx_entries').select('*').order('date', { ascending: false }),
+                supabase.from('gx_users').select('*')
+            ]);
+            if (marketsRes.error) throw marketsRes.error;
+            if (commoditiesRes.error) throw commoditiesRes.error;
+            if (entriesRes.error) throw entriesRes.error;
+            if (usersRes.error) throw usersRes.error;
+            markets = marketsRes.data || [];
+            commodities = commoditiesRes.data || [];
+            entries = entriesRes.data || [];
+            users = usersRes.data || [];
+            // Also store in localStorage for offline fallback
+            localStorage.setItem('gx_markets', JSON.stringify(markets));
+            localStorage.setItem('gx_commodities', JSON.stringify(commodities));
+            localStorage.setItem('gx_entries', JSON.stringify(entries));
+            localStorage.setItem('gx_users', JSON.stringify(users));
+        } catch (err) {
+            console.warn('Cloud fetch failed, using local cache', err);
+            // fallback to localStorage if exists
+            if (localStorage.getItem('gx_markets')) markets = JSON.parse(localStorage.getItem('gx_markets'));
+            if (localStorage.getItem('gx_commodities')) commodities = JSON.parse(localStorage.getItem('gx_commodities'));
+            if (localStorage.getItem('gx_entries')) entries = JSON.parse(localStorage.getItem('gx_entries'));
+            if (localStorage.getItem('gx_users')) users = JSON.parse(localStorage.getItem('gx_users'));
+        }
+    }
+
+    // Authentication: verify password using SHA-256
+    async function hashPassword(pwd) {
+        const encoder = new TextEncoder();
+        const data = encoder.encode(pwd);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map(b => b.toString(16).padStart(2,'0')).join('');
+    }
+
+    async function verifyLogin(userId, password) {
+        let user = users.find(u => u.user_id.toLowerCase() === userId.toLowerCase());
+        if (!user) return null;
+        let hashed = await hashPassword(password);
+        if (user.password_hash === hashed && user.active) return user;
+        return null;
+    }
+
+    async function updateUserPassword(userId, newPassword) {
+        const newHash = await hashPassword(newPassword);
+        const { error } = await supabase.from('gx_users').update({ password_hash: newHash }).eq('user_id', userId);
+        if (error) throw error;
+        // update local array
+        let idx = users.findIndex(u => u.user_id === userId);
+        if (idx !== -1) users[idx].password_hash = newHash;
+        localStorage.setItem('gx_users', JSON.stringify(users));
+    }
+
+    async function createUser(newUser) {
+        const { error } = await supabase.from('gx_users').insert(newUser);
+        if (error) throw error;
+        users.push(newUser);
+        localStorage.setItem('gx_users', JSON.stringify(users));
+    }
+
+    // Add a new price entry (sync to cloud)
+    async function addEntry(entry) {
+        const { error } = await supabase.from('gx_entries').insert(entry);
+        if (error) throw error;
+        entries.unshift(entry); // add to front
+        localStorage.setItem('gx_entries', JSON.stringify(entries));
+    }
+
+    // ------------------------------- UI RENDERING ----------------------------------
+    function renderSidebar() {
+        if (!currentUser) return;
+        const nav = document.getElementById("navMenu");
+        const items = [
+            { id: "dashboard", icon: "fas fa-tachometer-alt", label: "Dashboard", roles: ["admin","staff","merchant","analyst"] },
+            { id: "reports", icon: "fas fa-chart-line", label: "Reports", roles: ["admin","staff","analyst"] },
+            { id: "trend", icon: "fas fa-chart-simple", label: "Trend Charts", roles: ["admin","staff","analyst"] },
+            { id: "compare", icon: "fas fa-exchange-alt", label: "Market Compare", roles: ["admin","staff","analyst"] },
+            { id: "arbitrage", icon: "fas fa-balance-scale", label: "Arbitrage", roles: ["admin","staff","analyst"] }
+        ];
+        if (currentUser.role === "admin") items.push({ id: "admin", icon: "fas fa-user-cog", label: "Admin", roles: ["admin"] });
+        nav.innerHTML = items.filter(item => item.roles.includes(currentUser.role)).map(item => `
+            <div class="nav-item ${activePage === item.id ? 'active' : ''}" data-page="${item.id}">
+                <i class="${item.icon}"></i><span>${item.label}</span>
+            </div>
+        `).join("");
+        document.querySelectorAll(".nav-item").forEach(el => {
+            el.addEventListener("click", () => {
+                activePage = el.dataset.page;
+                renderCurrentPage();
+            });
+        });
+        document.getElementById("userInfoSidebar").innerHTML = `<i class="fas fa-user"></i> ${currentUser.full_name} (${currentUser.role})`;
+    }
+
+    async function renderCurrentPage() {
+        if (!currentUser) { showLogin(); return; }
+        const container = document.getElementById("pageContent");
+        container.innerHTML = '<div class="loading">Loading data...</div>';
+        await loadDataFromCloud();  // always refresh data from cloud
+        if (activePage === "dashboard") await renderDashboard(container);
+        else if (activePage === "reports") await renderReports(container);
+        else if (activePage === "trend") await renderTrendCharts(container);
+        else if (activePage === "compare") await renderMarketCompare(container);
+        else if (activePage === "arbitrage") await renderArbitrage(container);
+        else if (activePage === "admin" && currentUser.role === "admin") await renderAdmin(container);
+        else container.innerHTML = `<div class="card">Page not available for your role.</div>`;
+        if (window.innerWidth < 768) document.getElementById("sidebar").classList.remove("open");
+    }
+
+    // Dashboard
+    async function renderDashboard(container) {
+        const totalMarkets = markets.length;
+        const totalCommodities = commodities.length;
+        const totalEntries = entries.length;
+        const avgPrice = entries.length ? (entries.reduce((sum, e) => sum + (e.price || 0), 0) / entries.length).toFixed(0) : 0;
+
+        container.innerHTML = `
+            <div class="kpi-grid">
+                <div class="kpi-card"><div class="kpi-number">${totalMarkets}</div><div>Markets</div></div>
+                <div class="kpi-card"><div class="kpi-number">${totalCommodities}</div><div>Commodities</div></div>
+                <div class="kpi-card"><div class="kpi-number">${totalEntries}</div><div>Price Records</div></div>
+                <div class="kpi-card"><div class="kpi-number">₦${avgPrice}</div><div>Avg Price</div></div>
+            </div>
+            <div class="charts-row">
+                <div class="chart-container"><canvas id="pieChart"></canvas></div>
+                <div class="chart-container"><canvas id="timeChart"></canvas></div>
+            </div>
+            <div class="card"><h3>Latest Prices</h3><div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Date</th><th>Market</th><th>Commodity</th><th>Price (₦)</th></tr></thead><tbody id="latestTableBody"></tbody></table></div></div>
+        `;
+
+        // Pie chart: entries per market (top 10)
+        const marketCounts = {};
+        entries.forEach(e => { marketCounts[e.market_name] = (marketCounts[e.market_name] || 0) + 1; });
+        const pieLabels = Object.keys(marketCounts).slice(0, 10);
+        const pieData = pieLabels.map(l => marketCounts[l]);
+        if (chartInstances.pie) chartInstances.pie.destroy();
+        const pieCtx = document.getElementById("pieChart").getContext("2d");
+        chartInstances.pie = new Chart(pieCtx, {
+            type: 'pie',
+            data: { labels: pieLabels, datasets: [{ data: pieData, backgroundColor: ['#2b5f3b','#3b8c5c','#4caf7f','#1e4a2e','#6fbf8f','#2e7d5e','#5cb85c','#3d9970','#218c74','#0b5e2e'] }] }
+        });
+
+        // Time series: entries per day (last 30 days)
+        const dateMap = new Map();
+        entries.forEach(e => { dateMap.set(e.date, (dateMap.get(e.date) || 0) + 1); });
+        const sortedDates = Array.from(dateMap.keys()).sort().slice(-30);
+        const counts = sortedDates.map(d => dateMap.get(d));
+        if (chartInstances.time) chartInstances.time.destroy();
+        const timeCtx = document.getElementById("timeChart").getContext("2d");
+        chartInstances.time = new Chart(timeCtx, {
+            type: 'line',
+            data: { labels: sortedDates, datasets: [{ label: 'Entries per day', data: counts, borderColor: '#4caf7f', backgroundColor: 'rgba(76,175,127,0.1)', fill: true, tension: 0.2 }] }
+        });
+
+        const latest = [...entries].sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 10);
+        document.getElementById("latestTableBody").innerHTML = latest.map(e => `<tr><td>${e.date}</td><td>${e.market_name}</td><td>${e.commodity_name}</td><td>₦${Number(e.price).toLocaleString()}</td></tr>`).join("");
+
+        // Quick price entry (admin & staff)
+        if (currentUser.role === 'admin' || currentUser.role === 'staff') {
+            const quickForm = `
+                <div class="card">
+                    <h3>Quick Price Entry</h3>
+                    <div class="filter-bar">
+                        <select id="quickMarket"><option value="">Market</option>${markets.map(m => `<option value="${m.market_id}">${m.market_name}</option>`).join("")}</select>
+                        <select id="quickCommodity"><option value="">Commodity</option>${commodities.map(c => `<option value="${c.commodity_id}">${c.commodity_name}</option>`).join("")}</select>
+                        <input type="number" id="quickPrice" placeholder="Price (₦)">
+                        <button id="quickSubmit">Submit</button>
+                    </div>
+                </div>
+            `;
+            container.insertAdjacentHTML("beforeend", quickForm);
+            document.getElementById("quickSubmit").onclick = async () => {
+                const marketId = document.getElementById("quickMarket").value;
+                const commodityId = document.getElementById("quickCommodity").value;
+                const price = parseFloat(document.getElementById("quickPrice").value);
+                if (!marketId || !commodityId || isNaN(price)) { alert("Fill all fields"); return; }
+                const marketObj = markets.find(m => m.market_id === marketId);
+                const commodityObj = commodities.find(c => c.commodity_id === commodityId);
+                const newEntry = {
+                    entry_id: "e_" + Date.now(),
+                    date: new Date().toISOString().split('T')[0],
+                    timestamp_ms: Date.now(),
+                    market_id: marketId,
+                    market_name: marketObj ? marketObj.market_name : "",
+                    commodity_id: commodityId,
+                    commodity_name: commodityObj ? commodityObj.commodity_name : "",
+                    price: price,
+                    user_id: currentUser.user_id,
+                    source: "web",
+                    created_at: new Date().toISOString()
+                };
+                try {
+                    await addEntry(newEntry);
+                    renderCurrentPage();
+                } catch (err) {
+                    alert("Error saving entry: " + err.message);
+                }
+            };
+        }
+    }
+
+    // Reports with filters
+    async function renderReports(container) {
+        container.innerHTML = `<div class="card"><h3>Filter Reports</h3><div class="filter-bar" id="reportFilters"></div><div style="overflow-x:auto;"><table class="data-table" id="reportTable">...</table></div></div>`;
+        const filterDiv = document.getElementById("reportFilters");
+        filterDiv.innerHTML = `
+            <select id="repMarket"><option value="">All Markets</option>${markets.map(m => `<option value="${m.market_id}">${m.market_name}</option>`).join("")}</select>
+            <select id="repCommodity"><option value="">All Commodities</option>${commodities.map(c => `<option value="${c.commodity_id}">${c.commodity_name}</option>`).join("")}</select>
+            <input type="date" id="repStart" placeholder="Start Date"><input type="date" id="repEnd" placeholder="End Date"><button id="applyReport">Apply</button>
+        `;
+        const refresh = () => {
+            const marketId = document.getElementById("repMarket").value;
+            const commodityId = document.getElementById("repCommodity").value;
+            const start = document.getElementById("repStart").value;
+            const end = document.getElementById("repEnd").value;
+            let filtered = entries;
+            if (marketId) filtered = filtered.filter(e => e.market_id === marketId);
+            if (commodityId) filtered = filtered.filter(e => e.commodity_id === commodityId);
+            if (start) filtered = filtered.filter(e => e.date >= start);
+            if (end) filtered = filtered.filter(e => e.date <= end);
+            const tableBody = filtered.slice(0, 100).map(e => `<tr><td>${e.date}</td><td>${e.market_name}</td><td>${e.commodity_name}</td><td>₦${Number(e.price).toLocaleString()}</td><td>${e.user_id}</td></tr>`).join("");
+            document.getElementById("reportTable").innerHTML = `<thead><tr><th>Date</th><th>Market</th><th>Commodity</th><th>Price</th><th>User</th></tr></thead><tbody>${tableBody}</tbody>`;
+        };
+        document.getElementById("applyReport").onclick = refresh;
+        refresh();
+    }
+
+    // Trend Charts (latest price across markets for selected commodity)
+    async function renderTrendCharts(container) {
+        container.innerHTML = `<div class="card"><h3>Latest Price Across Markets</h3><div class="filter-bar"><select id="trendCommodity"></select></div><canvas id="trendBarChart"></canvas></div>`;
+        const select = document.getElementById("trendCommodity");
+        select.innerHTML = commodities.map(c => `<option value="${c.commodity_id}">${c.commodity_name}</option>`).join("");
+        const renderBar = (commId) => {
+            const latestByMarket = new Map();
+            entries.filter(e => e.commodity_id === commId).forEach(e => {
+                if (!latestByMarket.has(e.market_id) || new Date(e.date) > new Date(latestByMarket.get(e.market_id).date)) {
+                    latestByMarket.set(e.market_id, e);
+                }
+            });
+            const labels = Array.from(latestByMarket.values()).map(e => e.market_name);
+            const data = Array.from(latestByMarket.values()).map(e => e.price);
+            if (chartInstances.trendBar) chartInstances.trendBar.destroy();
+            const ctx = document.getElementById("trendBarChart").getContext("2d");
+            chartInstances.trendBar = new Chart(ctx, {
+                type: 'bar',
+                data: { labels, datasets: [{ label: 'Latest Price (₦)', data, backgroundColor: ['#2b5f3b','#3b8c5c','#4caf7f','#1e4a2e','#6fbf8f','#2e7d5e','#5cb85c','#3d9970','#218c74','#0b5e2e'] }] }
+            });
+        };
+        select.onchange = (e) => renderBar(e.target.value);
+        if (commodities.length) renderBar(commodities[0].commodity_id);
+    }
+
+    // Market Compare
+    async function renderMarketCompare(container) {
+        container.innerHTML = `<div class="card"><h3>Market Compare</h3><div class="filter-bar"><select id="compareCommodity"></select><button id="compareBtn">Compare</button></div><canvas id="compareChart"></canvas><div id="compareTable"></div></div>`;
+        const select = document.getElementById("compareCommodity");
+        select.innerHTML = commodities.map(c => `<option value="${c.commodity_id}">${c.commodity_name}</option>`).join("");
+        const compare = () => {
+            const commId = select.value;
+            const latestByMarket = new Map();
+            entries.filter(e => e.commodity_id === commId).forEach(e => {
+                if (!latestByMarket.has(e.market_id) || new Date(e.date) > new Date(latestByMarket.get(e.market_id).date)) {
+                    latestByMarket.set(e.market_id, e);
+                }
+            });
+            const items = Array.from(latestByMarket.values());
+            const labels = items.map(e => e.market_name);
+            const data = items.map(e => e.price);
+            if (chartInstances.compare) chartInstances.compare.destroy();
+            const ctx = document.getElementById("compareChart").getContext("2d");
+            chartInstances.compare = new Chart(ctx, {
+                type: 'bar',
+                data: { labels, datasets: [{ label: 'Latest Price (₦)', data, backgroundColor: '#3b8c5c' }] }
+            });
+            document.getElementById("compareTable").innerHTML = `<table class="data-table"><thead><tr><th>Market</th><th>Price (₦)</th><th>Date</th></tr></thead><tbody>${items.map(e => `<tr><td>${e.market_name}</td><td>₦${Number(e.price).toLocaleString()}</td><td>${e.date}</td></tr>`).join("")}</tbody></table>`;
+        };
+        document.getElementById("compareBtn").onclick = compare;
+        if (commodities.length) compare();
+    }
+
+    // Arbitrage
+    async function renderArbitrage(container) {
+        container.innerHTML = `<div class="card"><h3>Arbitrage Opportunities</h3><div class="filter-bar"><select id="arbitrageCommodity"></select><button id="arbitrageBtn">Analyze</button></div><div id="arbitrageResult"></div></div>`;
+        const select = document.getElementById("arbitrageCommodity");
+        select.innerHTML = commodities.map(c => `<option value="${c.commodity_id}">${c.commodity_name}</option>`).join("");
+        const analyze = () => {
+            const commId = select.value;
+            const latestByMarket = new Map();
+            entries.filter(e => e.commodity_id === commId).forEach(e => {
+                if (!latestByMarket.has(e.market_id) || new Date(e.date) > new Date(latestByMarket.get(e.market_id).date)) {
+                    latestByMarket.set(e.market_id, e);
+                }
+            });
+            const items = Array.from(latestByMarket.values());
+            if (items.length < 2) {
+                document.getElementById("arbitrageResult").innerHTML = `<div class="alert">Insufficient data for this commodity (need at least two markets).</div>`;
+                return;
+            }
+            items.sort((a,b) => a.price - b.price);
+            const min = items[0];
+            const max = items[items.length-1];
+            const spread = max.price - min.price;
+            const potential = ((max.price - min.price) / min.price * 100).toFixed(1);
+            document.getElementById("arbitrageResult").innerHTML = `
+                <div class="alert" style="background:#1e2a24;">
+                    <strong>Buy at:</strong> ${min.market_name} @ ₦${Number(min.price).toLocaleString()}<br>
+                    <strong>Sell at:</strong> ${max.market_name} @ ₦${Number(max.price).toLocaleString()}<br>
+                    <strong>Spread:</strong> ₦${spread.toLocaleString()} (${potential}% potential gain)<br>
+                </div>
+                <table class="data-table"><thead><tr><th>Market</th><th>Price (₦)</th><th>Date</th></tr></thead><tbody>${items.map(e => `<tr><td>${e.market_name}</td><td>₦${Number(e.price).toLocaleString()}</td><td>${e.date}</td></tr>`).join("")}</tbody></table>
+            `;
+        };
+        document.getElementById("arbitrageBtn").onclick = analyze;
+        if (commodities.length) analyze();
+    }
+
+    // Admin panel (simplified user management)
+    async function renderAdmin(container) {
+        container.innerHTML = `<div class="card"><h3>Admin Panel</h3><div><button id="syncCloudBtn">Sync to Cloud (Manual)</button><button id="resetLocalBtn" class="danger">Reset Local Cache</button></div><div id="syncStatus"></div><hr><h4>Manage Users</h4><div id="userList"></div><div><input id="newUserId" placeholder="user_id"><input id="newFullName" placeholder="Full Name"><select id="newRole"><option>staff</option><option>merchant</option><option>analyst</option></select><button id="createUserBtn">Create User</button></div></div>`;
+        document.getElementById("syncCloudBtn").onclick = () => { document.getElementById("syncStatus").innerHTML = "<div class='alert'>Cloud sync is automatic. Data already saved to Supabase on each entry.</div>"; };
+        document.getElementById("resetLocalBtn").onclick = () => { localStorage.clear(); alert("Local cache cleared. Reloading..."); location.reload(); };
+        const renderUserList = () => {
+            const html = `<table class="data-table"><thead><tr><th>User</th><th>Role</th><th>Active</th><th>Reset Password</th></tr></thead><tbody>${users.map(u => `<tr><td>${u.full_name} (${u.user_id})</td><td>${u.role}</td><td>${u.active ? "✅" : "❌"}</td><td><button class="resetPwd" data-id="${u.user_id}">Reset</button></td></tr>`).join("")}</tbody></table>`;
+            document.getElementById("userList").innerHTML = html;
+            document.querySelectorAll(".resetPwd").forEach(btn => {
+                btn.onclick = async () => {
+                    const uid = btn.dataset.id;
+                    const newPwd = prompt("New password for " + uid);
+                    if (newPwd && newPwd.length > 3) {
+                        try {
+                            await updateUserPassword(uid, newPwd);
+                            alert("Password updated.");
+                            renderUserList();
+                        } catch (err) {
+                            alert("Error: " + err.message);
+                        }
+                    }
+                };
+            });
+        };
+        document.getElementById("createUserBtn").onclick = async () => {
+            const uid = document.getElementById("newUserId").value.trim();
+            const name = document.getElementById("newFullName").value.trim();
+            const role = document.getElementById("newRole").value;
+            if (!uid || !name) { alert("Fill both fields"); return; }
+            const defaultPwd = "changeme";
+            const hash = await hashPassword(defaultPwd);
+            const newUser = { user_id: uid, full_name: name, role, active: true, password_hash: hash, created_at: new Date().toISOString() };
+            try {
+                await createUser(newUser);
+                renderUserList();
+                alert(`User ${uid} created with default password "changeme".`);
+            } catch (err) {
+                alert("Error: " + err.message);
+            }
+        };
+        renderUserList();
+    }
+
+    // Login screen
+    function showLogin() {
+        document.getElementById("pageContent").innerHTML = `
+            <div class="card" style="max-width:400px; margin:2rem auto;">
+                <h2>GXPULSE Login</h2>
+                <input type="text" id="loginUser" placeholder="User ID" autocomplete="off"><br><br>
+                <input type="password" id="loginPass" placeholder="Password"><br><br>
+                <button id="loginBtn">Login</button>
+                <div id="loginError" style="color:#ff8a6a; margin-top:1rem;"></div>
+            </div>
+        `;
+        document.getElementById("loginBtn").onclick = async () => {
+            const uid = document.getElementById("loginUser").value;
+            const pwd = document.getElementById("loginPass").value;
+            await loadDataFromCloud(); // ensure users are loaded
+            const user = await verifyLogin(uid, pwd);
+            if (user) {
+                currentUser = user;
+                // force password change for default users with weak passwords
+                const defaultAdminHash = "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918";
+                const defaultStaffHash = "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8";
+                if ((user.user_id === "admin" && user.password_hash === defaultAdminHash) || (user.user_id !== "admin" && user.password_hash === defaultStaffHash)) {
+                    const newPwd = prompt("First login: please change your password");
+                    if (newPwd && newPwd.length > 3) {
+                        await updateUserPassword(user.user_id, newPwd);
+                        currentUser.password_hash = await hashPassword(newPwd);
+                        alert("Password updated. Please log in again.");
+                        currentUser = null;
+                        showLogin();
+                        return;
+                    } else {
+                        alert("Password change required.");
+                        return;
+                    }
+                }
+                renderSidebar();
+                activePage = "dashboard";
+                renderCurrentPage();
+            } else {
+                document.getElementById("loginError").innerText = "Invalid credentials";
+            }
+        };
+    }
+
+    // Initial load
+    (async function init() {
+        await loadDataFromCloud();
+        const savedUser = localStorage.getItem("gx_current_user");
+        if (savedUser) {
+            try {
+                const u = JSON.parse(savedUser);
+                const fresh = users.find(us => us.user_id === u.user_id);
+                if (fresh && fresh.active) currentUser = fresh;
+                else currentUser = null;
+            } catch(e) { currentUser = null; }
+        }
+        if (currentUser) {
+            renderSidebar();
+            renderCurrentPage();
+        } else {
+            showLogin();
+        }
+        // menu toggle
+        document.getElementById("menuToggle")?.addEventListener("click", () => document.getElementById("sidebar").classList.toggle("open"));
+        document.getElementById("logoutBtn")?.addEventListener("click", () => {
+            localStorage.removeItem("gx_current_user");
+            currentUser = null;
+            showLogin();
+        });
+        window.addEventListener("beforeunload", () => {
+            if (currentUser) localStorage.setItem("gx_current_user", JSON.stringify({ user_id: currentUser.user_id }));
+        });
+    })();
+</script>
+</body>
+</html>

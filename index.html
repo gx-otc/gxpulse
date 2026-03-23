@@ -4,14 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>GXPULSE | GX OTC Market Intelligence</title>
-    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <!-- Supabase JS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* ... existing CSS (unchanged) ... */
+        /* Your existing CSS (keep as before) */
         * { margin:0; padding:0; box-sizing:border-box; font-family:'Inter',sans-serif; }
         body { background:#0a0c10; color:#eef2ff; height:100vh; overflow:hidden; }
         .app { display:flex; height:100vh; width:100%; position:relative; }
@@ -86,8 +83,8 @@
 
 <script>
     // ------------------------------- CONFIG ----------------------------------
-    const SUPABASE_URL = "https://vglnekxeyypojwulsaqt.supabase.co";      // REPLACE
-    const SUPABASE_ANON_KEY = "sb_publishable_4Q6O8-pl_ILuWrVW-MMqMw_ErlN7QDj"; // REPLACE
+    const SUPABASE_URL = "https://vglnekxeyypojwulsaqt.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_4Q6O8-pl_ILuWrVW-MMqMw_ErlN7QDj";
     let supabaseClient;
     let currentUser = null;
     let activePage = "dashboard";
@@ -128,6 +125,7 @@
             localStorage.setItem('gx_commodities', JSON.stringify(commodities));
             localStorage.setItem('gx_entries', JSON.stringify(entries));
             localStorage.setItem('gx_users', JSON.stringify(users));
+            console.log(`Loaded ${entries.length} entries from Supabase`);
         } catch (err) {
             console.warn('Cloud fetch failed, using local cache', err);
             if (localStorage.getItem('gx_markets')) markets = JSON.parse(localStorage.getItem('gx_markets'));
@@ -141,61 +139,49 @@
     async function addMarket(market) {
         const { error } = await supabaseClient.from('gx_markets').insert(market);
         if (error) throw error;
-        markets.push(market);
-        localStorage.setItem('gx_markets', JSON.stringify(markets));
+        await loadDataFromCloud(); // refresh all data after change
     }
     async function updateMarket(marketId, updates) {
         const { error } = await supabaseClient.from('gx_markets').update(updates).eq('market_id', marketId);
         if (error) throw error;
-        const idx = markets.findIndex(m => m.market_id === marketId);
-        if (idx !== -1) markets[idx] = { ...markets[idx], ...updates };
-        localStorage.setItem('gx_markets', JSON.stringify(markets));
+        await loadDataFromCloud();
     }
     async function deleteMarket(marketId) {
         const { error } = await supabaseClient.from('gx_markets').delete().eq('market_id', marketId);
         if (error) throw error;
-        markets = markets.filter(m => m.market_id !== marketId);
-        localStorage.setItem('gx_markets', JSON.stringify(markets));
+        await loadDataFromCloud();
     }
 
     async function addCommodity(commodity) {
         const { error } = await supabaseClient.from('gx_commodities').insert(commodity);
         if (error) throw error;
-        commodities.push(commodity);
-        localStorage.setItem('gx_commodities', JSON.stringify(commodities));
+        await loadDataFromCloud();
     }
     async function updateCommodity(commId, updates) {
         const { error } = await supabaseClient.from('gx_commodities').update(updates).eq('commodity_id', commId);
         if (error) throw error;
-        const idx = commodities.findIndex(c => c.commodity_id === commId);
-        if (idx !== -1) commodities[idx] = { ...commodities[idx], ...updates };
-        localStorage.setItem('gx_commodities', JSON.stringify(commodities));
+        await loadDataFromCloud();
     }
     async function deleteCommodity(commId) {
         const { error } = await supabaseClient.from('gx_commodities').delete().eq('commodity_id', commId);
         if (error) throw error;
-        commodities = commodities.filter(c => c.commodity_id !== commId);
-        localStorage.setItem('gx_commodities', JSON.stringify(commodities));
+        await loadDataFromCloud();
     }
 
     async function addEntry(entry) {
         const { error } = await supabaseClient.from('gx_entries').insert(entry);
         if (error) throw error;
-        entries.unshift(entry);
-        localStorage.setItem('gx_entries', JSON.stringify(entries));
+        await loadDataFromCloud(); // refresh all data
     }
     async function updateEntry(entryId, updates) {
         const { error } = await supabaseClient.from('gx_entries').update(updates).eq('entry_id', entryId);
         if (error) throw error;
-        const idx = entries.findIndex(e => e.entry_id === entryId);
-        if (idx !== -1) entries[idx] = { ...entries[idx], ...updates };
-        localStorage.setItem('gx_entries', JSON.stringify(entries));
+        await loadDataFromCloud();
     }
     async function deleteEntry(entryId) {
         const { error } = await supabaseClient.from('gx_entries').delete().eq('entry_id', entryId);
         if (error) throw error;
-        entries = entries.filter(e => e.entry_id !== entryId);
-        localStorage.setItem('gx_entries', JSON.stringify(entries));
+        await loadDataFromCloud();
     }
 
     // Password helpers
@@ -217,31 +203,25 @@
         const newHash = await hashPassword(newPassword);
         const { error } = await supabaseClient.from('gx_users').update({ password_hash: newHash }).eq('user_id', userId);
         if (error) throw error;
-        let idx = users.findIndex(u => u.user_id === userId);
-        if (idx !== -1) users[idx].password_hash = newHash;
-        localStorage.setItem('gx_users', JSON.stringify(users));
+        await loadDataFromCloud();
     }
     async function createUser(newUser) {
         const { error } = await supabaseClient.from('gx_users').insert(newUser);
         if (error) throw error;
-        users.push(newUser);
-        localStorage.setItem('gx_users', JSON.stringify(users));
+        await loadDataFromCloud();
     }
     async function updateUser(userId, updates) {
         const { error } = await supabaseClient.from('gx_users').update(updates).eq('user_id', userId);
         if (error) throw error;
-        const idx = users.findIndex(u => u.user_id === userId);
-        if (idx !== -1) users[idx] = { ...users[idx], ...updates };
-        localStorage.setItem('gx_users', JSON.stringify(users));
+        await loadDataFromCloud();
     }
     async function deleteUser(userId) {
         const { error } = await supabaseClient.from('gx_users').delete().eq('user_id', userId);
         if (error) throw error;
-        users = users.filter(u => u.user_id !== userId);
-        localStorage.setItem('gx_users', JSON.stringify(users));
+        await loadDataFromCloud();
     }
 
-    // ------------------------------- UI ----------------------------------
+    // ------------------------------- UI Rendering ----------------------------------
     function renderSidebar() {
         if (!currentUser) return;
         const nav = document.getElementById("navMenu");
@@ -271,7 +251,7 @@
         if (!currentUser) { showLogin(); return; }
         const container = document.getElementById("pageContent");
         container.innerHTML = '<div class="loading">Loading data...</div>';
-        await loadDataFromCloud();
+        await loadDataFromCloud(); // always fetch latest data
         if (activePage === "dashboard") await renderDashboard(container);
         else if (activePage === "reports") await renderReports(container);
         else if (activePage === "trend") await renderTrendCharts(container);
@@ -282,7 +262,7 @@
         if (window.innerWidth < 768) document.getElementById("sidebar").classList.remove("open");
     }
 
-    // Dashboard (unchanged except date picker in quick entry)
+    // Dashboard (unchanged except quick entry now uses the same addEntry)
     async function renderDashboard(container) {
         const totalMarkets = markets.length;
         const totalCommodities = commodities.length;
@@ -362,15 +342,15 @@
                 };
                 try {
                     await addEntry(newEntry);
-                    renderCurrentPage();
+                    renderCurrentPage(); // reload page to show updated count
                 } catch (err) {
-                    alert("Error: " + err.message);
+                    alert("Error saving entry: " + err.message);
                 }
             };
         }
     }
 
-    // Reports with edit/delete for entries (based on permissions)
+    // Reports with edit/delete (same as before, but refresh after changes)
     async function renderReports(container) {
         let filteredEntries = entries;
         if (currentUser.role === 'staff') {
@@ -425,7 +405,7 @@
                 btn.onclick = async () => {
                     if (confirm("Delete this entry?")) {
                         await deleteEntry(btn.dataset.id);
-                        refresh();
+                        refresh(); // re-apply filters after delete
                     }
                 };
             });
@@ -466,12 +446,12 @@
                 price: newPrice
             });
             modal.remove();
-            renderCurrentPage();
+            renderCurrentPage(); // refresh the whole page to reflect changes
         };
         document.getElementById("cancelEdit").onclick = () => modal.remove();
     }
 
-    // Trend Charts (unchanged)
+    // Trend, Compare, Arbitrage (unchanged)
     async function renderTrendCharts(container) {
         container.innerHTML = `<div class="card"><h3>Latest Price Across Markets</h3><div class="filter-bar"><select id="trendCommodity"></select></div><canvas id="trendBarChart"></canvas></div>`;
         const select = document.getElementById("trendCommodity");
@@ -493,7 +473,6 @@
         if (commodities.length) renderBar(commodities[0].commodity_id);
     }
 
-    // Market Compare (unchanged)
     async function renderMarketCompare(container) {
         container.innerHTML = `<div class="card"><h3>Market Compare</h3><div class="filter-bar"><select id="compareCommodity"></select><button id="compareBtn">Compare</button></div><canvas id="compareChart"></canvas><div id="compareTable"></div></div>`;
         const select = document.getElementById("compareCommodity");
@@ -518,7 +497,6 @@
         if (commodities.length) compare();
     }
 
-    // Arbitrage (unchanged)
     async function renderArbitrage(container) {
         container.innerHTML = `<div class="card"><h3>Arbitrage Opportunities</h3><div class="filter-bar"><select id="arbitrageCommodity"></select><button id="arbitrageBtn">Analyze</button></div><div id="arbitrageResult"></div></div>`;
         const select = document.getElementById("arbitrageCommodity");
@@ -554,7 +532,7 @@
         if (commodities.length) analyze();
     }
 
-    // Admin panel with CRUD for markets, commodities, users
+    // Admin panel with full CRUD, now with refresh after every action
     async function renderAdmin(container) {
         container.innerHTML = `
             <div class="card">
@@ -565,8 +543,10 @@
             <div class="card"><h3>Markets</h3><div id="marketsAdmin"></div><button id="addMarketBtn">+ Add Market</button></div>
             <div class="card"><h3>Commodities</h3><div id="commoditiesAdmin"></div><button id="addCommodityBtn">+ Add Commodity</button></div>
             <div class="card"><h3>Users</h3><div id="usersAdmin"></div><button id="addUserBtn">+ Add User</button></div>
+            <div class="card"><h3>Entries (Historical)</h3><div><button id="importEntriesBtn">Re‑import All Entries from CSV</button></div><div id="importStatus"></div></div>
         `;
-        // Helper to render tables with edit/delete
+
+        // Render tables with inline edit/delete, and auto‑refresh after each action
         const renderMarkets = () => {
             document.getElementById("marketsAdmin").innerHTML = `<table class="data-table"><thead><tr><th>ID</th><th>Name</th><th>Actions</th></tr></thead><tbody>${markets.map(m => `
                 <tr>
@@ -678,6 +658,47 @@
                 renderUsers();
                 alert(`User ${uid} created with default password "changeme".`);
             }
+        };
+
+        // Helper to import entries from a CSV file
+        document.getElementById("importEntriesBtn").onclick = () => {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.csv';
+            input.onchange = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const text = await file.text();
+                const rows = text.split('\n').slice(1); // skip header
+                let count = 0;
+                for (const row of rows) {
+                    if (!row.trim()) continue;
+                    const cols = row.split(',');
+                    // assume order: entry_id,date,timestamp_ms,market_id,market_name,commodity_id,commodity_name,price,user_id,...
+                    const entry = {
+                        entry_id: cols[0],
+                        date: cols[1],
+                        timestamp_ms: parseInt(cols[2]),
+                        market_id: cols[3],
+                        market_name: cols[4],
+                        commodity_id: cols[5],
+                        commodity_name: cols[6],
+                        price: parseFloat(cols[7]),
+                        user_id: cols[8] || 'historical_seed',
+                        source: 'csv_import',
+                        created_at: new Date().toISOString()
+                    };
+                    try {
+                        await addEntry(entry);
+                        count++;
+                    } catch (err) {
+                        console.warn('Failed to insert row', entry, err);
+                    }
+                }
+                document.getElementById("importStatus").innerHTML = `<div class="alert">Imported ${count} entries. Reloading...</div>`;
+                setTimeout(() => location.reload(), 2000);
+            };
+            input.click();
         };
 
         renderMarkets();

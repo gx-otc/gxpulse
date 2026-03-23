@@ -110,7 +110,7 @@
             const [marketsRes, commoditiesRes, entriesRes, usersRes] = await Promise.all([
                 supabaseClient.from('gx_markets').select('*'),
                 supabaseClient.from('gx_commodities').select('*'),
-                supabaseClient.from('gx_entries').select('*').order('date', { ascending: false }).limit(10000),
+                supabaseClient.from('gx_entries').select('*').order('date', { ascending: false }).range(0, 9999),
                 supabaseClient.from('gx_users').select('*')
             ]);
             if (marketsRes.error) throw marketsRes.error;

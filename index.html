@@ -273,8 +273,8 @@
     // ------------------------------- CONFIG ----------------------------------
     const SUPABASE_URL = "https://vglnekxeyypojwulsaqt.supabase.co";      // replace with your actual URL
     const SUPABASE_ANON_KEY = "sb_publishable_4Q6O8-pl_ILuWrVW-MMqMw_ErlN7QDj"; // replace with your anon key
-    const APP_VERSION = "v2.2.0";
-    let supabase;
+    const APP_VERSION = "v2.2.1";
+    let supabaseClient;   // renamed to avoid conflict with global supabase
     let currentUser = null;
     let activePage = "dashboard";
     let chartInstances = {};
@@ -285,10 +285,10 @@
     let entries = [];
     let users = [];
 
-    // Helper: init supabase
+    // Helper: init supabase client
     function initSupabase() {
-        if (!supabase) {
-            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        if (!supabaseClient) {
+            supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         }
     }
 
@@ -297,10 +297,10 @@
         initSupabase();
         try {
             const [marketsRes, commoditiesRes, entriesRes, usersRes] = await Promise.all([
-                supabase.from('gx_markets').select('*'),
-                supabase.from('gx_commodities').select('*'),
-                supabase.from('gx_entries').select('*').order('date', { ascending: false }),
-                supabase.from('gx_users').select('*')
+                supabaseClient.from('gx_markets').select('*'),
+                supabaseClient.from('gx_commodities').select('*'),
+                supabaseClient.from('gx_entries').select('*').order('date', { ascending: false }),
+                supabaseClient.from('gx_users').select('*')
             ]);
             if (marketsRes.error) throw marketsRes.error;
             if (commoditiesRes.error) throw commoditiesRes.error;
@@ -344,7 +344,7 @@
 
     async function updateUserPassword(userId, newPassword) {
         const newHash = await hashPassword(newPassword);
-        const { error } = await supabase.from('gx_users').update({ password_hash: newHash }).eq('user_id', userId);
+        const { error } = await supabaseClient.from('gx_users').update({ password_hash: newHash }).eq('user_id', userId);
         if (error) throw error;
         // update local array
         let idx = users.findIndex(u => u.user_id === userId);
@@ -353,7 +353,7 @@
     }
 
     async function createUser(newUser) {
-        const { error } = await supabase.from('gx_users').insert(newUser);
+        const { error } = await supabaseClient.from('gx_users').insert(newUser);
         if (error) throw error;
         users.push(newUser);
         localStorage.setItem('gx_users', JSON.stringify(users));
@@ -361,7 +361,7 @@
 
     // Add a new price entry (sync to cloud)
     async function addEntry(entry) {
-        const { error } = await supabase.from('gx_entries').insert(entry);
+        const { error } = await supabaseClient.from('gx_entries').insert(entry);
         if (error) throw error;
         entries.unshift(entry); // add to front
         localStorage.setItem('gx_entries', JSON.stringify(entries));
@@ -615,7 +615,7 @@
         if (commodities.length) analyze();
     }
 
-    // Admin panel (simplified user management)
+    // Admin panel
     async function renderAdmin(container) {
         container.innerHTML = `<div class="card"><h3>Admin Panel</h3><div><button id="syncCloudBtn">Sync to Cloud (Manual)</button><button id="resetLocalBtn" class="danger">Reset Local Cache</button></div><div id="syncStatus"></div><hr><h4>Manage Users</h4><div id="userList"></div><div><input id="newUserId" placeholder="user_id"><input id="newFullName" placeholder="Full Name"><select id="newRole"><option>staff</option><option>merchant</option><option>analyst</option></select><button id="createUserBtn">Create User</button></div></div>`;
         document.getElementById("syncCloudBtn").onclick = () => { document.getElementById("syncStatus").innerHTML = "<div class='alert'>Cloud sync is automatic. Data already saved to Supabase on each entry.</div>"; };
